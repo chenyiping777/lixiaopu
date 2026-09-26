@@ -1,0 +1,15 @@
+**/target/
+/.idea/
+*.iml
+*.log
+/backups/
+*.yml
+*.yaml
+**/src/test/
+*.class
+*.jar
+*.war
+*.pyc
+**/__pycache__/
+.env
+.env.*

@@ -1,0 +1,45 @@
+### 商品列表：启动后可用来检查接口连通性
+POST http://localhost:8081/api/products/search
+Content-Type: application/json
+
+{"pageNo":1,"pageSize":12}
+
+### 根据分类查询商品，支持价格排序
+POST http://localhost:8081/api/products/by-category
+Content-Type: application/json
+
+{"categoryId":1,"pageNo":1,"pageSize":12,"sortBy":"price","asc":true}
+
+### 商品详情
+GET http://localhost:8081/api/products/1
+Accept: application/json
+
+### 注册验证码
+POST http://localhost:8081/api/auth/sms
+Content-Type: application/json
+
+{"phone":"13800000000","purpose":"REGISTER"}
+
+### 买家注册：填写收到的验证码
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{"username":"your_username","password":"replace_with_8_or_more_chars","phone":"13800000000","code":"123456"}
+
+### 密码登录：成功响应包含 token、refreshToken、userId、sessionId
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{"phone":"13800000000","password":"replace_with_8_or_more_chars"}
+
+### 微信快捷登录：code 必须由真实微信小程序 wx.login 获取
+POST http://localhost:8081/api/auth/wechat
+Content-Type: application/json
+
+{"code":"wx_login_temporary_code"}
+
+### 管理员登录：需先配置角色与管理员账号
+POST http://localhost:8082/api/admin/auth/login
+Content-Type: application/json
+
+{"phone":"13800000000","password":"your_admin_password"}

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixiaopu.mapper.SysUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.lixiaopu.model.entity.SysUser">
+            <id property="id" column="id" />
+            <result property="username" column="username" />
+            <result property="password" column="password" />
+            <result property="nickname" column="nickname" />
+            <result property="avatar" column="avatar" />
+            <result property="openid" column="openid" />
+            <result property="phone" column="phone" />
+            <result property="userType" column="user_type" />
+            <result property="isEnable" column="is_enable" />
+            <result property="authVersion" column="auth_version" />
+            <result property="firstLoginTime" column="first_login_time" />
+            <result property="lastLoginTime" column="last_login_time" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,username,password,nickname,avatar,openid,
+        phone,user_type,is_enable,auth_version,first_login_time,last_login_time,
+        create_time,update_time
+    </sql>
+</mapper>

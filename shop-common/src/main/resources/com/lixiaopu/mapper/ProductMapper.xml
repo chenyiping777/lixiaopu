@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixiaopu.mapper.ProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.lixiaopu.model.entity.Product">
+            <id property="id" column="id" />
+            <result property="categoryId" column="category_id" />
+            <result property="name" column="name" />
+            <result property="sellPoint" column="sell_point" />
+            <result property="price" column="price" />
+            <result property="enterprisePrice" column="enterprise_price" />
+            <result property="stock" column="stock" />
+            <result property="coverImage" column="cover_image" />
+            <result property="description" column="description" />
+            <result property="viewCount" column="view_count" />
+            <result property="salesCount" column="sales_count" />
+            <result property="status" column="status" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,category_id,name,sell_point,price,enterprise_price,
+        stock,cover_image,description,view_count,sales_count,
+        status,create_time,update_time
+    </sql>
+</mapper>
