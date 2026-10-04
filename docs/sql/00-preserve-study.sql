@@ -1,5 +1,5 @@
 -- 仅供从此前 7 张学习表升级的现有库执行一次；先备份数据库。
--- 旧表统一改名为 *_study，数据原样保留；之后执行 shop-common/.../db/01-full-schema.sql。
+-- 旧表统一改名为 *_study，数据原样保留；之后执行 src/main/resources/db/01-full-schema.sql。
 USE lixiaopu;
 RENAME TABLE
   category TO category_study,

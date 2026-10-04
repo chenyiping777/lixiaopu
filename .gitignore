@@ -5,7 +5,8 @@
 /backups/
 *.yml
 *.yaml
-**/src/test/
+/src/main/resources/application-user.properties
+/src/main/resources/application-admin.properties
 *.class
 *.jar
 *.war
@@ -13,3 +14,9 @@
 **/__pycache__/
 .env
 .env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
