@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixiaopu.mapper.AuthMapper">
+    <sql id="UserRoleJoins">
+        FROM sys_role r
+        JOIN sys_user_role ur ON ur.role_id = r.id
+    </sql>
+    <sql id="EnabledUserRoles">
+        ur.user_id = #{uid} AND r.is_enable = 1
+    </sql>
+    <!--根据用户 id 查询该用户拥有的启用角色-->
+    <select id="roles" resultType="com.lixiaopu.pojo.entity.SysRole">
+        SELECT r.* <include refid="UserRoleJoins"/>
+        WHERE <include refid="EnabledUserRoles"/>
+    </select>
+    <!--查询用户对应的权限，去重-->
+    <select id="permissions" resultType="com.lixiaopu.pojo.entity.SysPermission">
+        SELECT DISTINCT p.* <include refid="UserRoleJoins"/>
+        JOIN sys_role_permission rp ON rp.role_id = r.id
+        JOIN sys_permission p ON p.id = rp.perm_id
+        WHERE <include refid="EnabledUserRoles"/> AND p.is_enable = 1
+    </select>
+    <!--查询系统管理员数量-->
+    <select id="systemAdminCount" resultType="long">
+        SELECT COUNT(*) <include refid="UserRoleJoins"/>
+        WHERE r.role_code = 'SYS_ADMIN'
+    </select>
+</mapper>

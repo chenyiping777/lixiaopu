@@ -1,12 +1,13 @@
 package com.lixiaopu.common.constant;
 
 
+import com.lixiaopu.common.generator.NicknameGenerator;
 
 public class DataConstant {
 
     /**
      * 通用滚动查询的单次条数上限：80条（数据不足时少于80条）。
-     * 当前项目尚未引用；参考项目订单滚动查询实际使用此常量。
+     * 迁移后的订单滚动查询使用此常量。
      */
     public static final int COMMON_SCROLL_QUERY_NUMBER = 80;
 
@@ -66,5 +67,5 @@ public class DataConstant {
      */
     public static final String DEFAULT_AVATAR="/static/images/default-avatar.png";
 
-
+    public static final String ANONYMOUS_NICKNAME= NicknameGenerator.generateAnonymousNickname();
 }

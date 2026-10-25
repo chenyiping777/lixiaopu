@@ -3,9 +3,7 @@ package com.lixiaopu.controller.admin;
 import com.lixiaopu.common.result.Result;
 import com.lixiaopu.pojo.dto.CategoryDTO;
 import com.lixiaopu.service.CategoryService;
-import com.lixiaopu.service.ProductService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +14,6 @@ public class AdminCategoryController {
     @Autowired
     private  CategoryService categoryService;
 
-    @Autowired
-    private ProductService productService;
     /**
      * 获取分类树
      * @return
@@ -73,16 +69,5 @@ public class AdminCategoryController {
         return categoryService.updateCategoryStatus(id, status);
     }
 
-    /**
-     * 查看分类下的商品列表,支持一级分类和二级分类
-     *
-     * @param categoryId
-     * @return
-     */
-    @GetMapping("/category/product/list/{categoryId}/{beginProductId}")
-    public Result getCategoryProductList(@PathVariable @NotBlank @Pattern(regexp = "^[1-9][0-9]*$", message = "分类 ID 必须为正整数") String categoryId
-            , @PathVariable @Pattern(regexp = "^(0|[1-9][0-9]*)$", message = "起始商品 ID 必须为非负整数") String beginProductId
-            , @RequestParam(defaultValue = "default") String sortType) {
-        return productService.getCategoryProductList(categoryId, beginProductId, sortType);
-    }
+
 }

@@ -16,7 +16,7 @@ public class AdminMeController {
     @GetMapping("/api/admin/me") public Result me() {
         long uid=AuthContext.get().getUid();
         var user=users.selectById(uid);
-        return Result.success(Map.of("id",uid,"username",user.getUsername(),
+        return Result.success(Map.of("id",Long.toString(uid),"username",user.getUsername(),
             "roles",roles.roles(uid).stream().map(r->r.getRoleCode()).toList(),
             "permissions",roles.permissions(uid).stream().map(p->p.getPermCode()).toList()));
     }

@@ -71,4 +71,9 @@ public class CartController {
         return cartService.mergeCart(cartDTO);
     }
 
+    @PutMapping("/quantity")
+    public Result updateQuantity(@RequestBody @Valid CartProductDTO item) {
+        return cartService.updateQuantity(item);
+    }
+
 }

@@ -1,29 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lixiaopu.mapper.ProductMapper">
-
-    <resultMap id="BaseResultMap" type="com.lixiaopu.pojo.entity.Product">
-            <id property="id" column="id" />
-            <result property="categoryId" column="category_id" />
-            <result property="name" column="name" />
-            <result property="sellPoint" column="sell_point" />
-            <result property="price" column="price" />
-            <result property="enterprisePrice" column="enterprise_price" />
-            <result property="stock" column="stock" />
-            <result property="coverImage" column="cover_image" />
-            <result property="description" column="description" />
-            <result property="viewCount" column="view_count" />
-            <result property="salesCount" column="sales_count" />
-            <result property="status" column="status" />
-            <result property="createTime" column="create_time" />
-            <result property="updateTime" column="update_time" />
+    <resultMap id="ProductSpecResultMap" type="com.lixiaopu.pojo.entity.ProductSpec">
+        <id column="spec_id" property="id"/>
+        <result column="spec_product_id" property="productId"/>
+        <result column="spec_text" property="specText"/>
+        <result column="spec_price" property="price"/>
+        <result column="spec_enterprise_price" property="enterprisePrice"/>
+        <result column="spec_stock" property="stock"/>
+        <result column="spec_create_time" property="createTime"/>
+        <result column="spec_update_time" property="updateTime"/>
     </resultMap>
 
-    <sql id="Base_Column_List">
-        id,category_id,name,sell_point,price,enterprise_price,
-        stock,cover_image,description,view_count,sales_count,
-        status,create_time,update_time
+    <resultMap id="ProductWithImageAndSpecResultMap" type="com.lixiaopu.pojo.entity.Product">
+        <id column="product_id" property="id"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="name" property="name"/>
+        <result column="sell_point" property="sellPoint"/>
+        <result column="product_price" property="price"/>
+        <result column="enterprise_price" property="enterprisePrice"/>
+        <result column="stock" property="stock"/>
+        <result column="cover_image" property="image"/>
+        <result column="description" property="description"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="sales_count" property="salesCount"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_Collection" property="isCollection"/>
+
+        <collection property="imageUrls"
+                    ofType="java.lang.String">
+            <result column="image_url"/>
+        </collection>
+        <collection property="specList"
+                    ofType="com.lixiaopu.pojo.entity.ProductSpec"
+                    resultMap="ProductSpecResultMap">
+        </collection>
+    </resultMap>
+
+    <sql id="ProductColumns">
+        p.id AS product_id, p.category_id, p.name, p.sell_point,
+        p.price AS product_price, p.enterprise_price, p.stock, p.cover_image,
+        p.description, p.view_count, p.sales_count, p.status, p.create_time, p.update_time
     </sql>
+    <sql id="ImageAndSpecColumns">
+        pi.image_url, pi.sort, ps.id AS spec_id, ps.product_id AS spec_product_id,
+        ps.spec_text, ps.price AS spec_price, ps.enterprise_price AS spec_enterprise_price,
+        ps.stock AS spec_stock, ps.create_time AS spec_create_time, ps.update_time AS spec_update_time
+    </sql>
+    <sql id="ProductImageAndSpecJoins">
+        FROM product p
+        LEFT JOIN product_image pi ON p.id = pi.product_id
+        LEFT JOIN product_spec ps ON p.id = ps.product_id
+    </sql>
+
+
+    <!--根据商品 id + 用户 id 查商品详情，带图片、规格、是否收藏-->
+    <!--product p
+      LEFT JOIN product_image pi ON p.id = pi.product_id
+      LEFT JOIN product_spec ps ON p.id = ps.product_id
+      LEFT JOIN collection c ON p.id = c.product_id AND c.user_id = #{userId}-->
+    <select id="selectByProductId" resultMap="ProductWithImageAndSpecResultMap">
+        SELECT <include refid="ProductColumns"/>, <include refid="ImageAndSpecColumns"/>,
+               IFNULL(c.id, 0) AS is_Collection
+        <include refid="ProductImageAndSpecJoins"/>
+        LEFT JOIN collection c ON p.id = c.product_id AND c.user_id = #{userId}
+        WHERE p.id = #{productId} AND p.status = 1
+    </select>
+
+
 </mapper>

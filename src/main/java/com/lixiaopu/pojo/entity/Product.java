@@ -8,7 +8,9 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.lixiaopu.common.constant.DatePatternConstants;
 import com.lixiaopu.pojo.enums.CommonStatus;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldNameConstants;
 import org.springframework.format.annotation.DateTimeFormat;
 
@@ -25,6 +27,8 @@ import java.util.List;
 @Data
 @TableName(value = "product")
 @FieldNameConstants
+@AllArgsConstructor
+@NoArgsConstructor
 public class Product implements Serializable {
 
     @Serial

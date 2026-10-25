@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -23,6 +25,7 @@ public class Feedback {
     /**
      * 
      */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long userId;
 
     /**
@@ -48,6 +51,7 @@ public class Feedback {
     /**
      * 
      */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long replyAdminId;
 
     /**

@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -12,6 +14,7 @@ import lombok.Data;
 public class ProductCollection {
     @TableId(type = IdType.AUTO)
     private Long id;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long userId;
     private Long productId;
     private LocalDateTime createTime;

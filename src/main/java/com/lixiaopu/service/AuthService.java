@@ -1,6 +1,7 @@
 package com.lixiaopu.service;
 
 import com.lixiaopu.pojo.dto.AuthDtos;
+import com.lixiaopu.pojo.dto.UserWechatDTO;
 import com.lixiaopu.common.exception.AuthException;
 import com.lixiaopu.common.context.AuthContext;
 import com.lixiaopu.security.token.TokenService;
@@ -26,6 +27,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -110,14 +112,21 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
      */
     private SysUser createUser(String username, String rawPassword, String phone,
                                String openid, byte userType, String roleCode) {
+        return createUser(username, rawPassword, phone, openid, userType, roleCode, null, null);
+    }
+
+    private SysUser createUser(String username, String rawPassword, String phone,
+                               String openid, byte userType, String roleCode,
+                               String nickname, String avatar) {
 
         SysUser user = new SysUser();
         user.setUsername(username);
         if (rawPassword != null) {
             user.setPassword(BCrypt.hashpw(rawPassword, BCrypt.gensalt(12)));
         }
-        user.setNickname("栗友" + UUID.randomUUID().toString().substring(0, 8));
-        user.setAvatar("/static/images/default-avatar.png");
+        user.setNickname(StringUtils.hasText(nickname)
+                ? nickname : "栗友" + UUID.randomUUID().toString().substring(0, 8));
+        user.setAvatar(StringUtils.hasText(avatar) ? avatar : "/static/images/default-avatar.png");
         user.setPhone(phone);
         user.setOpenid(openid);
         user.setUserType(userType);
@@ -229,9 +238,12 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
     }
 
     @Transactional
-    public Result wechat(String code) {
+    public Result wechat(UserWechatDTO request) {
+        if (!StringUtils.hasText(request.getCode())) {
+            throw new AuthException(ResultCode.VALIDATE_FAILED, "微信登录 code 不能为空");
+        }
         // 通过微信授权码获取openid
-        String openid = wechatGateway.getOpenid(code);
+        String openid = wechatGateway.getOpenid(request.getCode());
         // 通过openid查询用户
         SysUser user = findByOpenid(openid);
         // 如果用户不存在，则创建用户
@@ -239,7 +251,8 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
             String username = "wx_" + UUID.randomUUID().toString().replace("-", "");
             // 创建用户
             try {
-                user = createUser(username, null, null, openid, BUYER_TYPE, BUYER_ROLE);
+                user = createUser(username, null, null, openid, BUYER_TYPE, BUYER_ROLE,
+                        request.getNickName(), request.getAvatarUrl());
             } catch (DuplicateKeyException ex) {
                 //要插入的这条记录，唯一字段的值已经存在于数据库里，不能重复。
                 // 两个相同微信身份的请求同时创建时，使用已创建的账号。

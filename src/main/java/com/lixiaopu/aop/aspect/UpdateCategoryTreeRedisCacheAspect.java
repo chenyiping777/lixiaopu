@@ -27,7 +27,7 @@ public class UpdateCategoryTreeRedisCacheAspect {
         if (Objects.isNull(result) || !Boolean.TRUE.equals(result.getSuccess())) {
             return;
         }
-        // 原业务方法已清除本地旧树，此处重新加载并同步Redis分类ID映射。
+        // 业务成功后从数据库重建 Redis 分类 ID 映射，并使本地分类树失效。
         categoryService.updateCategoryTreeRedisCache();
 
     }

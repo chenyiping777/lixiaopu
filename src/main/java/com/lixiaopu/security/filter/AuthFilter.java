@@ -37,10 +37,16 @@ public class AuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)
         throws ServletException,IOException {
         String path=request.getRequestURI();
+        boolean detail = path.matches("/api/products/[0-9]+");
+        boolean history = path.equals("/api/products/history");
+        boolean optionalBuyer = detail && request.getHeader("Authorization") != null;
         boolean admin=path.startsWith("/api/admin/");
-        boolean protectedBuyer=path.startsWith("/api/user/") || path.equals("/api/cart") || path.startsWith("/api/cart/")
+        boolean payment = (path.equals("/api/pay") || path.startsWith("/api/pay/"))
+                && !((path.equals("/api/pay/notify") || path.equals("/api/pay/refund/notify")) && "POST".equals(request.getMethod()));
+        boolean protectedBuyer=path.equals("/api/voucher-order") || path.startsWith("/api/voucher-order/") || payment || history || optionalBuyer || path.startsWith("/api/user/") || path.startsWith("/api/products/user/") || path.equals("/api/cart") || path.startsWith("/api/cart/")
             || path.equals("/api/addresses") || path.startsWith("/api/addresses/")
             || path.equals("/api/address") || path.startsWith("/api/address/")
+            || path.equals("/api/order") || path.startsWith("/api/order/")
             || path.equals("/api/upload/image")
             || path.equals("/api/auth/logout") || path.equals("/api/auth/change-password");
         boolean publicAdmin=path.equals("/api/admin/auth/login") || path.equals("/api/admin/auth/refresh") || path.equals("/api/admin/auth/sms")

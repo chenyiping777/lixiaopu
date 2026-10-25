@@ -1,11 +1,9 @@
 package com.lixiaopu.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.lixiaopu.common.constant.DatePatternConstants;
 import com.lixiaopu.pojo.enums.CommonStatus;

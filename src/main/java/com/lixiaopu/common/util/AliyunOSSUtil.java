@@ -3,6 +3,7 @@ package com.lixiaopu.common.util;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.PutObjectRequest;
+import com.aliyun.oss.model.ObjectMetadata;
 import com.lixiaopu.properties.AliyunOSSProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,39 +34,40 @@ public class AliyunOSSUtil {
      * @return 文件完整访问url
      */
     public String upload(MultipartFile file, String dir) throws IOException {
-        // 获取文件输入流
-        InputStream inputStream = file.getInputStream();
         // 原始文件名
         String originalFilename = file.getOriginalFilename();
         // 获取后缀
-        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String suffix = "";
+        if (originalFilename != null && originalFilename.matches(".*\\.[a-zA-Z0-9]+$")) {
+            suffix = originalFilename.substring(originalFilename.lastIndexOf('.'));
+        }
         // 生成唯一文件名，防止重名覆盖，拼接目录
         String fileName = dir + "/" + UUID.randomUUID() + suffix;
 
-        // 创建OSS客户端
-        OSS ossClient = new OSSClientBuilder().build(
-                aliyunOSSProperties.getEndpoint(),
-                aliyunOSSProperties.getAccessKeyId(),
-                aliyunOSSProperties.getAccessKeySecret()
-        );
-
-        try {
-            PutObjectRequest putObjectRequest = new PutObjectRequest(
-                    aliyunOSSProperties.getBucketName(),
-                    fileName,
-                    inputStream
+        try (InputStream inputStream = file.getInputStream()) {
+            // 创建OSS客户端
+            OSS ossClient = new OSSClientBuilder().build(
+                    aliyunOSSProperties.getEndpoint(),
+                    aliyunOSSProperties.getAccessKeyId(),
+                    aliyunOSSProperties.getAccessKeySecret()
             );
-            ossClient.putObject(putObjectRequest);
-            // 拼接访问地址
-            String url = "https://" + aliyunOSSProperties.getBucketName() + "." + aliyunOSSProperties.getEndpoint() + "/" + fileName;
-            log.info("OSS文件上传成功，url={}", url);
-            return url;
-        } finally {
-            // 关闭oss客户端，释放资源
-            if (ossClient != null) {
+            try {
+                PutObjectRequest request = new PutObjectRequest(
+                        aliyunOSSProperties.getBucketName(), fileName, inputStream);
+                ObjectMetadata metadata = new ObjectMetadata();
+                metadata.setContentType(file.getContentType());
+                metadata.setContentLength(file.getSize());
+                request.setMetadata(metadata);
+                ossClient.putObject(request);
+                // endpoint 配置可以带 https://，对象访问地址只保留一份协议。
+                String endpoint = aliyunOSSProperties.getEndpoint()
+                        .replaceFirst("^https?://", "").replaceAll("/+$", "");
+                String url = "https://" + aliyunOSSProperties.getBucketName() + "." + endpoint + "/" + fileName;
+                log.info("OSS文件上传成功，url={}", url);
+                return url;
+            } finally {
                 ossClient.shutdown();
             }
-            inputStream.close();
         }
     }
 }

@@ -161,12 +161,23 @@ CREATE TABLE IF NOT EXISTS `order` (
   order_no VARCHAR(64) NOT NULL,
   user_id BIGINT NOT NULL,
   address_id BIGINT NULL,
+  address_snapshot TEXT NULL COMMENT '下单收货地址快照',
   total_goods_amount DECIMAL(12,2) NOT NULL,
   freight DECIMAL(12,2) NOT NULL DEFAULT 0,
   total_amount DECIMAL(12,2) NOT NULL,
-  status TINYINT NOT NULL DEFAULT 0,
-  pay_type TINYINT NULL,
+  voucher_order_id BIGINT NULL,
+  voucher_discount_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  pay_status TINYINT NOT NULL DEFAULT 0 COMMENT '0未支付 1已支付 2申请退款 3退款中 4退款成功 5申请失败',
+  refund_no VARCHAR(64) NULL,
+  refund_reason VARCHAR(80) NULL,
+  refund_fail_reason VARCHAR(500) NULL,
+  refund_time DATETIME NULL,
+  logistics_company VARCHAR(128) NULL,
+  logistics_no VARCHAR(128) NULL,
   pay_time DATETIME NULL,
+  transaction_id VARCHAR(64) NULL,
+  pay_expire_time DATETIME NULL,
   deliver_time DATETIME NULL,
   receive_time DATETIME NULL,
   cancel_time DATETIME NULL,
@@ -174,16 +185,18 @@ CREATE TABLE IF NOT EXISTS `order` (
   remark VARCHAR(255) NULL,
   is_evaluate TINYINT NOT NULL DEFAULT 0,
   is_deleted TINYINT NOT NULL DEFAULT 0,
-  logistics_company VARCHAR(128) NULL,
-  logistics_no VARCHAR(128) NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_order_no(order_no),
   KEY idx_order_user_time(user_id,create_time),
   KEY idx_order_status(status),
+  KEY idx_order_voucher(voucher_order_id),
+  UNIQUE KEY uk_order_refund_no(refund_no),
+  KEY idx_order_pay_status_time(pay_status,update_time),
   FOREIGN KEY(user_id) REFERENCES sys_user(id),
   FOREIGN KEY(address_id) REFERENCES address(id),
-  CHECK(total_goods_amount>=0 AND freight>=0 AND total_amount>=0)
+  CHECK(total_goods_amount>=0 AND freight>=0 AND total_amount>=0),
+  CHECK(voucher_discount_amount>=0 AND voucher_discount_amount<=total_goods_amount)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 order';
 
 CREATE TABLE IF NOT EXISTS `order_item` (
@@ -204,18 +217,6 @@ CREATE TABLE IF NOT EXISTS `order_item` (
   FOREIGN KEY(spec_id) REFERENCES product_spec(id),
   CHECK(price>=0 AND quantity>0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 order_item';
-
-CREATE TABLE IF NOT EXISTS `order_tracking` (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  logistics_no VARCHAR(128) NULL,
-  order_id BIGINT NOT NULL,
-  logistics_status TINYINT NULL,
-  location VARCHAR(255) NULL,
-  description VARCHAR(500) NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_tracking_order(order_id),
-  FOREIGN KEY(order_id) REFERENCES `order`(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 order_tracking';
 
 CREATE TABLE IF NOT EXISTS `banner` (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -345,85 +346,80 @@ CREATE TABLE IF NOT EXISTS `product_comment_like` (
   FOREIGN KEY(user_id) REFERENCES sys_user(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 product_comment_like';
 
-CREATE TABLE IF NOT EXISTS `coupon_mutex_group` (
+CREATE TABLE IF NOT EXISTS voucher (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  group_name VARCHAR(128) NOT NULL,
-  group_code BIGINT NOT NULL,
-  remark VARCHAR(255) NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_coupon_mutex_code(group_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 coupon_mutex_group';
-
-CREATE TABLE IF NOT EXISTS `coupon` (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  coupon_no VARCHAR(64) NOT NULL,
-  activity_name VARCHAR(128) NOT NULL,
-  coupon_type TINYINT NOT NULL,
-  face_value DECIMAL(10,2) NULL,
-  discount_rate DECIMAL(6,4) NULL,
-  max_discount DECIMAL(10,2) NULL,
-  min_spend DECIMAL(10,2) NOT NULL DEFAULT 0,
-  total_quota INT NOT NULL DEFAULT 0,
-  used_quota INT NOT NULL DEFAULT 0,
-  receive_quota INT NOT NULL DEFAULT 0,
-  valid_mode TINYINT NOT NULL DEFAULT 1,
-  valid_start DATETIME NULL,
-  valid_end DATETIME NULL,
-  receive_valid_days INT NULL,
-  limit_per_person INT NOT NULL DEFAULT 1,
-  user_limit_type TINYINT NOT NULL DEFAULT 0,
-  use_scope TINYINT NOT NULL DEFAULT 0,
-  mutex_group_code BIGINT NULL,
-  status TINYINT NOT NULL DEFAULT 0,
-  is_elimination TINYINT NOT NULL DEFAULT 0,
-  release_time DATETIME NULL,
+  title VARCHAR(128) NOT NULL,
+  sub_title VARCHAR(255) NULL,
+  rules VARCHAR(2000) NULL,
+  pay_value BIGINT NOT NULL,
+  actual_value BIGINT NOT NULL,
+  validity_days INT NOT NULL DEFAULT 30,
+  type TINYINT NOT NULL DEFAULT 1,
+  status TINYINT NOT NULL DEFAULT 1,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_coupon_no(coupon_no),
-  KEY idx_coupon_status_time(status,release_time),
-  FOREIGN KEY(mutex_group_code) REFERENCES coupon_mutex_group(group_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 coupon';
+  CHECK (pay_value > 0 AND actual_value >= pay_value),
+  KEY idx_voucher_status(status,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='秒杀代金券';
 
-CREATE TABLE IF NOT EXISTS `coupon_scope_detail` (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  coupon_id BIGINT NOT NULL,
-  scope_type TINYINT NOT NULL,
-  target_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS seckill_voucher (
+  voucher_id BIGINT PRIMARY KEY,
+  stock INT NOT NULL,
+  begin_time DATETIME NOT NULL,
+  end_time DATETIME NOT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_coupon_scope(coupon_id,scope_type,target_id),
-  FOREIGN KEY(coupon_id) REFERENCES coupon(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 coupon_scope_detail';
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CHECK (stock >= 0),
+  CHECK (end_time > begin_time),
+  FOREIGN KEY(voucher_id) REFERENCES voucher(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='秒杀库存及活动时间';
 
-CREATE TABLE IF NOT EXISTS `coupon_user` (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS voucher_order (
+  id BIGINT PRIMARY KEY,
   user_id BIGINT NOT NULL,
-  coupon_id BIGINT NOT NULL,
-  valid_start DATETIME NULL,
-  valid_end DATETIME NULL,
-  use_status TINYINT NOT NULL DEFAULT 0,
+  voucher_id BIGINT NOT NULL,
+  pay_type TINYINT NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  pay_value BIGINT NULL,
+  actual_value BIGINT NULL,
+  seckill_voucher_id BIGINT NULL,
+  validity_days INT NULL,
+  transaction_id VARCHAR(64) NULL,
+  pay_expire_time DATETIME NULL,
+  valid_from DATETIME NULL,
+  valid_until DATETIME NULL,
+  use_status VARCHAR(16) NULL,
+  bound_order_id BIGINT NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  KEY idx_coupon_user_user(user_id,use_status),
-  FOREIGN KEY(user_id) REFERENCES sys_user(id),
-  FOREIGN KEY(coupon_id) REFERENCES coupon(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 coupon_user';
-
-CREATE TABLE IF NOT EXISTS `coupon_order_rel` (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  order_id BIGINT NOT NULL,
-  order_item_id BIGINT NULL,
-  user_coupon_id BIGINT NOT NULL,
-  activity_id BIGINT NULL,
-  discount_amount DECIMAL(10,2) NOT NULL,
-  rel_status TINYINT NOT NULL DEFAULT 0,
+  pay_time DATETIME NULL,
   use_time DATETIME NULL,
   refund_time DATETIME NULL,
-  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_coupon_order(order_id),
-  FOREIGN KEY(order_id) REFERENCES `order`(id),
-  FOREIGN KEY(order_item_id) REFERENCES order_item(id),
-  FOREIGN KEY(user_coupon_id) REFERENCES coupon_user(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 coupon_order_rel';
+  UNIQUE KEY uk_voucher_order_user(user_id,seckill_voucher_id),
+  CHECK(seckill_voucher_id IS NULL OR seckill_voucher_id=voucher_id),
+  KEY idx_voucher_order_voucher(voucher_id),
+  UNIQUE KEY uk_voucher_payment_transaction(transaction_id),
+  KEY idx_voucher_order_wallet(user_id,id),
+  FOREIGN KEY(user_id) REFERENCES sys_user(id),
+  FOREIGN KEY(voucher_id) REFERENCES voucher(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购券订单，status=1为待支付';
+
+CREATE TABLE IF NOT EXISTS seckill_request (
+  id BIGINT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  voucher_id BIGINT NOT NULL,
+  state VARCHAR(16) NOT NULL,
+  reason VARCHAR(64) NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  sent_at DATETIME NULL,
+  next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_seckill_request_dispatch(state,next_attempt_at,id),
+  KEY idx_seckill_request_activity(voucher_id,state),
+  FOREIGN KEY(user_id) REFERENCES sys_user(id),
+  FOREIGN KEY(voucher_id) REFERENCES voucher(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='秒杀受理状态及可靠消息记录';
 
 CREATE TABLE IF NOT EXISTS `chat_session` (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -453,17 +449,14 @@ CREATE TABLE IF NOT EXISTS `chat_message` (
   FOREIGN KEY(to_user_id) REFERENCES sys_user(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 chat_message';
 
-CREATE TABLE IF NOT EXISTS `mq_consumer_failed_msg` (
+CREATE TABLE IF NOT EXISTS order_tracking (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  msg_id VARCHAR(128) NOT NULL,
-  biz_id VARCHAR(128) NULL,
-  topic VARCHAR(128) NOT NULL,
-  tag VARCHAR(128) NULL,
-  body LONGTEXT NOT NULL,
-  retry_count INT NOT NULL DEFAULT 0,
-  error_msg TEXT NULL,
-  status TINYINT NOT NULL DEFAULT 0,
+  logistics_no VARCHAR(128) NULL,
+  order_id BIGINT NOT NULL,
+  logistics_status TINYINT NULL,
+  location VARCHAR(255) NULL,
+  description VARCHAR(1024) NULL,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_failed_msg(msg_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 mq_consumer_failed_msg';
+  KEY idx_tracking_order_time(order_id, create_time),
+  FOREIGN KEY(order_id) REFERENCES `order`(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

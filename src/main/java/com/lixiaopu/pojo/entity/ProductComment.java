@@ -1,37 +1,187 @@
 package com.lixiaopu.pojo.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
-import lombok.Data;
+import com.baomidou.mybatisplus.annotation.*;
 
-/** 对应 product_comment；业务逻辑按模块逐步实现。 */
+import java.time.LocalDateTime;
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import lombok.experimental.FieldNameConstants;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ * 栗小铺 product_comment
+ * @TableName product_comment
+ */
+@TableName(value ="product_comment")
 @Data
-@TableName("product_comment")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Accessors(chain = true)
+@FieldNameConstants//用来把类的字段名生成字符串常量，默认放在内部类 Fields 中。
 public class ProductComment {
+    /**
+     * 评论唯一ID（主键）
+     */
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long productId;
-    private Long productSpecId;
-    private String productSpecText;
-    private String orderNo;
-    private Long userId;
-    private String userNickname;
-    private String userAvatar;
-    private Long parentId;
-    private Long replyUserId;
-    private Integer isBuyer;
-    private Integer isAppendComment;
-    private Integer isAnonymous;
-    private Integer isGoodReview;
-    private String replyUserNickname;
-    private Integer rating;
-    private String content;
-    private String imageUrls;
-    private Integer likeCount;
-    private Integer status;
-    private LocalDateTime createTime;
-    private LocalDateTime updatedTime;
-}
 
+    /**
+     * 商品ID，关联商品表
+     */
+    @TableField("product_id")
+    private Long productId;
+
+    /**
+     * 商品规格 id
+     */
+    @TableField("product_spec_id")
+    private Long productSpecId;
+
+    /**
+     * 商品规格简介文本
+     */
+    @TableField("product_spec_text")
+    private String productSpecText;
+
+    /**
+     * 订单ID，关联订单表
+     */
+    @TableField("order_no")
+    private String orderNo;
+
+
+    /**
+     * 评论人用户 ID
+     */
+    @TableField("user_id")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Long userId;
+
+    /**
+     * 用户昵称
+     */
+    @TableField("user_nickname")
+    private String userNickname;
+
+    /**
+     * 用户头像
+     */
+    @TableField("user_avatar")
+    private String userAvatar;
+
+    /**
+     * 父评论ID：0=一级评论（直接评商品），>0=二级回复（对应本表的评论ID）
+     */
+    @TableField("parent_id")
+    private Long parentId = 0L;
+
+    /**
+     * 被回复人用户ID，二级回复专用，前端展示「回复@XXX」
+     */
+    @TableField("reply_user_id")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Long replyUserId;
+
+    /**
+     * 是否为买家
+     */
+    @TableField("is_buyer")
+    private int isBuyer = 0;
+
+
+    /**
+     * 是否追评
+     */
+    @TableField("is_append_comment")
+    private int isAppendComment = 0;
+
+
+    /**
+     * 是否匿名评论
+     */
+    @TableField("is_anonymous")
+    private int isAnonymous = 0;
+
+    /**
+     * 是否为好评
+     * 评分大于等于四星
+     */
+    @TableField("is_good_review")
+    private int isGoodReview ;
+
+
+    /**
+     * 回复用户昵称
+     */
+    @TableField("reply_user_nickname")
+    private String replyUserNickname;
+
+    /**
+     * 商品评分：1-5星（仅一级评论必填，二级回复默认0）
+     */
+    @TableField("rating")
+    private Byte rating = 0;
+
+    /**
+     * 评论/回复内容
+     */
+    @TableField("content")
+    private String content;
+
+    /**
+     * 评论图片，JSON数组格式存储，例：["url1","url2"]
+     */
+    @TableField("image_urls")
+    private String imageUrls;
+
+    /**
+     * 点赞总数，冗余字段，从Redis同步过来，用于排序展示
+     */
+    @TableField("like_count")
+    private Integer likeCount = 0;
+
+    /**
+     * 用户是否点赞
+     */
+    @TableField(exist = false)
+    private boolean like = false;
+
+    /**
+     * 审核状态：0=待审核，1=已通过，2=已驳回
+     */
+    @TableField("status")
+    private Byte status = 0;
+
+    /**
+     * 创建时间
+     */
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedTime;
+
+    //4 分及以上算作好评，isGoodReview=1；否则为 0
+    public int getIsGoodReview() {
+        if (this.rating == null) {
+            return 0;
+        }
+        return this.rating >= 4 ? 1 : 0;
+    }
+
+
+}

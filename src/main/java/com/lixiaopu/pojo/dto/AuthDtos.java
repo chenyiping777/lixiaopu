@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
@@ -129,6 +131,7 @@ public final class AuthDtos {
     public static class Tokens {
         private String accessToken;// 访问令牌
         private String refreshToken;// 刷新令牌
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         private Long userId;// 用户 ID
         private String sessionId;// 会话 ID
     }

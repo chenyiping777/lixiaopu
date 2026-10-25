@@ -17,6 +17,8 @@ import com.lixiaopu.mapper.ProductMapper;
 import com.lixiaopu.mapper.ProductSpecMapper;
 import com.lixiaopu.pojo.dto.CartDTO;
 import com.lixiaopu.pojo.dto.CartProductDTO;
+import com.lixiaopu.pojo.dto.OrderItemDTO;
+import com.lixiaopu.pojo.entity.OrderItem;
 import com.lixiaopu.pojo.entity.Cart;
 import com.lixiaopu.pojo.entity.CartItem;
 import com.lixiaopu.pojo.entity.Product;
@@ -28,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -45,8 +48,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Autowired
     private ProductSpecMapper productSpecMapper;
 
-    @Autowired
-    private RedisConnector redisConnector;
 
     @Autowired
     private RedisCacheTtlProperties redisKeyTtlProperties;
@@ -92,7 +93,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
      */
     private Map<String, Object> loadCartMap(Long userId, String cartKey) {
         // 1. 优先从Redis读取该用户购物车Hash全部数据
-        Map<String, Object> cartMap = redisConnector.opsForHash().entries(cartKey);
+        Map<String, Object> cartMap = RedisConnector.opsForHash().entries(cartKey);
 
         // 2. 如果Redis查到购物车数据，直接返回Redis的数据（缓存命中）
         if (!cartMap.isEmpty()) {
@@ -119,9 +120,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         }
 
         // 6. 将从MySQL读取出来的购物车数据批量写入Redis（缓存预热）
-        redisConnector.opsForHash().putAll(cartKey, loaded);
+        RedisConnector.opsForHash().putAll(cartKey, loaded);
         // 设置Redis购物车key的过期时间
-        redisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+        RedisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
 
         // 7. 返回已经加载到内存的购物车Map
         //返回Redis 大 key `cartKey`（整个用户购物车 Hash）下，
@@ -136,11 +137,11 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
      */
     private void writeEmptyCart(String cartKey) {
         // 删除Redis购物车Hash key，避免后续重复查询MySQL
-        redisConnector.delete(cartKey);
+        RedisConnector.delete(cartKey);
         // 写入一个空标记到Redis，避免后续重复查询MySQL
-        redisConnector.opsForHash().put(cartKey, EMPTY_CART_HASH_KEY, "");
+        RedisConnector.opsForHash().put(cartKey, EMPTY_CART_HASH_KEY, "");
         // 设置Redis购物车key的过期时间
-        redisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+        RedisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
     }
 
     private static Long positiveId(String value) {
@@ -276,7 +277,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         } else {
             //不存在则新建购物项并补全商品信息,，更新 Redis 购物车
             cartItem = CartItem.builder()
-                    .userId(String.valueOf(userId))
+                    .userId(userId)
                     .productId(productId)
                     .specId(specId)
                     .quantity(quantity)
@@ -295,9 +296,9 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
                 return Result.error(MessageConstant.DATA_ERROR);
             }
         }
-        redisConnector.opsForHash().delete(cartKey, EMPTY_CART_HASH_KEY);
-        redisConnector.opsForHash().put(cartKey, cartHashKey, cartItem);
-        redisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+        RedisConnector.opsForHash().delete(cartKey, EMPTY_CART_HASH_KEY);
+        RedisConnector.opsForHash().put(cartKey, cartHashKey, cartItem);
+        RedisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
         return Result.success();
 
 
@@ -373,13 +374,13 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         if (!cartMap.keySet().containsAll(hashKeys)) {
             return Result.error(MessageConstant.CART_NOT_EXIST_ERROR);
         }
-        redisConnector.opsForHash().delete(cartKey, hashKeys.toArray());
-        if (redisConnector.opsForHash().entries(cartKey).isEmpty()) {
+        RedisConnector.opsForHash().delete(cartKey, hashKeys.toArray());
+        if (RedisConnector.opsForHash().entries(cartKey).isEmpty()) {
             //购物车为空：写入“空购物车标记”，让后续查询知道购物车确实为空，避免又去数据库加载旧数据。
             writeEmptyCart(cartKey);
         } else {
             //还有条目：刷新购物车缓存的过期时间。
-            redisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+            RedisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
         }
         HashMap<String, Object> map = new HashMap<>(2);
         map.put(DELETE_IDS, productIdsList);
@@ -422,7 +423,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         for (CartProductDTO item : carts) {
             CartItem cartItem = CartItem
                     .builder()
-                    .userId(String.valueOf(userId))
+                    .userId(userId)
                     .productId(item.getProductId())
                     .specId(item.getSpecId())
                     .quantity(item.getQuantity())
@@ -433,10 +434,44 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             }
             replacement.put(RedisKeyGenerator.cartHashKey(item.getProductId(), item.getSpecId()), cartItem);
         }
-        redisConnector.delete(cartKey);
-        redisConnector.opsForHash().putAll(cartKey, replacement);
-        redisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+        RedisConnector.delete(cartKey);
+        RedisConnector.opsForHash().putAll(cartKey, replacement);
+        RedisConnector.expire(cartKey, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
         return Result.success(carts);
+    }
+
+    @Override
+    @SaveCartRedisCacheToMysqlAnnotation
+    public Result updateQuantity(CartProductDTO input) {
+        if(!validCartProduct(input)) return Result.error(MessageConstant.INPUT_DATA_ERROR);
+        Long userId=CurrentHolder.getCurrentUser().getId();
+        String key=RedisKeyGenerator.cartKey(userId);
+        String field=RedisKeyGenerator.cartHashKey(input.getProductId(),input.getSpecId());
+        Object stored=loadCartMap(userId,key).get(field);
+        if(!(stored instanceof CartItem item)) return Result.error(404,"购物车条目不存在");
+        item.setQuantity(input.getQuantity());
+        RedisConnector.opsForHash().put(key,field,item);
+        RedisConnector.expire(key,redisKeyTtlProperties.getCartTtl(),TimeUnit.SECONDS);
+        return Result.success(item);
+    }
+
+
+    /** 订单事务提交后调用；按商品+规格删除，已不存在的条目也视为清理完成。 */
+    @Override
+    @SaveCartRedisCacheToMysqlAnnotation
+    public Result removeOrderedProducts(List<OrderItem> items) {
+        Long userId = CurrentHolder.getCurrentUser().getId();
+        String key = RedisKeyGenerator.cartKey(userId);
+        Set<String> fields = new HashSet<>();
+        for (OrderItem item : items) fields.add(RedisKeyGenerator.cartHashKey(
+                item.getProductId().toString(), item.getSpecId().toString()));
+        if (fields.isEmpty()) return Result.success();
+        loadCartMap(userId, key);
+        // 先放占位标记再删指定条目，不删除整个 Hash，避免误删未选商品或恢复 MySQL 旧快照。
+        RedisConnector.opsForHash().put(key, EMPTY_CART_HASH_KEY, "");
+        RedisConnector.opsForHash().delete(key, fields.toArray());
+        RedisConnector.expire(key, redisKeyTtlProperties.getCartTtl(), TimeUnit.SECONDS);
+        return Result.success();
     }
 
     /**
@@ -445,16 +480,16 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
      * @param userId 用户ID
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void syncCartToMysql(Long userId) {
         //从 Redisson 延迟队列取出来的用户 id，用来同步该用户 Redis 购物车到 MySQL。
-        final Long validUserId = positiveId(String.valueOf(userId));
-        if (validUserId == null) {
+        if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("Invalid cart user ID");
         }
+        final Long validUserId = userId;
 
         String cartKey = RedisKeyGenerator.cartKey(validUserId);
-        Map<String, Object> cartMap = redisConnector.opsForHash().entries(cartKey);
+        Map<String, Object> cartMap = RedisConnector.opsForHash().entries(cartKey);
         // Redis key 缺失表示没有可信快照，不能据此清空 MySQL。
         if (cartMap.isEmpty()) {
             return;

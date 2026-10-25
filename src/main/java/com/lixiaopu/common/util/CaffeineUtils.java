@@ -22,6 +22,8 @@ public  class CaffeineUtils {
 
     /**
      * 查询热门搜索关键词
+     * - 用户前端请求热门搜索词接口，调用 `cache.get(key)`
+     * - 缓存缺失 → 自动执行 CacheLoader，查询最新 DB 数据，放入缓存并返回给前端
      */
     public  List<String> getHotProductSearchKeyword() {
         return hotProductSearchKeywordCache.get(CaffeineConstant.CACHE_KEY_HOT_PRODUCT_SEARCH_KEYWORD);

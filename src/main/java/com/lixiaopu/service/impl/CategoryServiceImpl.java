@@ -1,6 +1,7 @@
 package com.lixiaopu.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -36,8 +37,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
     private ProductMapper productMapper;
     @Autowired
     private CaffeineUtils caffeineUtils;
-    @Autowired
-    private RedisConnector redisConnector;
 
     @Override
     public Result getCategoryTree() {
@@ -104,29 +103,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
     }
 
     /**
-     * 获取分类树子节点
-     * @param categoryId
-     * @return
-     */
-    @Override
-    public Result getCategoryChildren(String categoryId) {
-        //Caffeine是一个Java缓存库，可以把数据保存在当前Java程序的内存中，供后续请求复用。
-        //它提供的 LoadingCache 能在缓存缺失时调用预先配置的加载方法。
-        List<Category> categoryTree = caffeineUtils.getCategoryTree();
-        //从树中先找到父分类，根据分类编号categoryId
-        List<Category> list = categoryTree
-                .stream()
-                .filter(category -> StringUtils.equals
-                        (categoryId, category.getId().toString()))
-                .toList();
-        if (list.isEmpty()||list.size()>DataConstant.ONE_INT){
-            return Result.error(MessageConstant.DATA_ERROR);
-        }
-        List<Category> categoryChildrenList = list.get(DataConstant.ZERO_INT).getChildren();
-        return Result.success(categoryChildrenList);
-    }
-
-    /**
      * 添加分类,支持添加一级分类，也支持添加二级分类，由 parentId 决定。
      *
      * @param categoryDTO
@@ -164,7 +140,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
         //只设置请求实际提供的字段，让实体上的默认值继续生效。
         Category category = new Category();
         // 拷贝DTO中非null字段：iconUrl、sort、status（前端传了才赋值，null不拷贝）
-        BeanUtil.copyProperties(categoryDTO, category, true);
+        BeanUtil.copyProperties(categoryDTO, category, cn.hutool.core.bean.copier.CopyOptions.create().ignoreNullValue());
         // 手动处理特殊字段：name需要trim，parentId是解析校验后的结果，不能直接拷DTO的
         category.setName(categoryDTO.getName().trim());
         category.setParentId(parentId);
@@ -399,10 +375,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
 
     /**
      * 更新分类树Redis缓存映射
-     * 逻辑：从本地Caffeine缓存读取最新分类树，组装一级分类ID -> 二级分类ID列表的Hash结构，写入Redis
-     * 先删除旧的Redis Hash，再写入新数据；分类树为空时仅清理旧缓存，不写入空Hash
+     * 直接从 MySQL 读取最新启用分类，清除本地旧树，生成映射后原子替换 Redis Hash。
      *1.
-     * key：lxp:category:tree
+     * key：category:tree
      * 类型：Hash
      * field                 value
      * firstCategory:1       [11, 12]
@@ -417,8 +392,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
     public void updateCategoryTreeRedisCache() {
         // 获取分类树在Redis中的key
         String key = RedisKeyGenerator.categoryTreeKey();
-        // 从Caffeine本地缓存获取最新完整分类树数据
-        List<Category> categoryTree = caffeineUtils.getCategoryTree();
+        // 重建不依赖旧 Caffeine，支持直接改库后主动刷新。
+        List<Category> categoryTree = getCategoryTreeCache();
+        caffeineUtils.invalidateCategoryTree();
         // 构建HashMap，用于存放Hash的field-value：field=一级分类hashKey，value=该一级下所有二级分类ID集合
         Map<String, Object> map = new HashMap<>(categoryTree.size());
 
@@ -436,12 +412,34 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
             map.put(hashKey, secondCategoryIdList);
         }
 
-        // 先删除旧的Hash缓存，避免残留旧数据
-        redisConnector.delete(key);
-        // 如果map不为空，将组装好的一级-二级ID映射批量写入Redis Hash；空树只清理，不写入空Hash
-        if (!map.isEmpty()) {
-            redisConnector.opsForHash().putAll(key, map);
+        RedisConnector.replaceHash(key, map);
+    }
+
+    @Override
+    public List<Long> resolveProductCategoryIds(Long categoryId, Boolean firstCategory) {
+        if (Boolean.FALSE.equals(firstCategory)) {
+            return List.of(categoryId);
         }
+        String key = RedisKeyGenerator.categoryTreeKey();
+        String field = RedisKeyGenerator.categoryTreeHashKey(categoryId);
+        List<Long> cached = RedisConnector.getHashField(key, field, new TypeReference<List<Long>>() {});
+        // 空列表表示已知没有子分类，只有 null 才需要回源。
+        if (cached != null) {
+            return cached;
+        }
+        Category parent = getById(categoryId);
+        if (parent == null || !Integer.valueOf(1).equals(parent.getStatus())) {
+            return List.of();
+        }
+        if (!Long.valueOf(0).equals(parent.getParentId())) {
+            return firstCategory == null ? List.of(categoryId) : List.of();
+        }
+        List<Long> children = baseMapper.selectList(Wrappers.<Category>lambdaQuery()
+                .eq(Category::getParentId, categoryId)
+                .eq(Category::getStatus, 1).orderByAsc(Category::getSort))
+                .stream().map(Category::getId).toList();
+        RedisConnector.opsForHash().put(key, field, children);
+        return children;
     }
 
 }

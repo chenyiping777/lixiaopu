@@ -7,6 +7,8 @@ import com.lixiaopu.common.result.ResultCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -21,7 +23,8 @@ public class AuthErrorHandler {
         };
         return ResponseEntity.status(status).body(Result.error(ex.getCode(),ex.getMessage()));
     }
-    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler({MethodArgumentNotValidException.class, HandlerMethodValidationException.class,
+            HttpMessageNotReadableException.class})
     public ResponseEntity<Result> invalid() {
         return ResponseEntity.badRequest().body(Result.error(ResultCode.VALIDATE_FAILED));
     }

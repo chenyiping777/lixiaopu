@@ -1,6 +1,7 @@
 package com.lixiaopu.controller.user;
 
 import com.lixiaopu.pojo.dto.AuthDtos;
+import com.lixiaopu.pojo.dto.UserWechatDTO;
 import com.lixiaopu.service.AuthService;
 import com.lixiaopu.common.context.AuthContext;
 import com.lixiaopu.common.result.Result;
@@ -55,8 +56,8 @@ public class LoginController {
 
     //微信登录
     @PostMapping("/wechat")
-    public Result wechat(@Valid @RequestBody AuthDtos.Wechat request) {
-        return Result.success(authService.wechat(request.getCode()));
+    public Result wechat(@Valid @RequestBody UserWechatDTO request) {
+        return authService.wechat(request);
     }
 
 

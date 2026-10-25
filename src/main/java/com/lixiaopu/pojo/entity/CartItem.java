@@ -22,7 +22,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 建造者模式注解，自动生成建造者 Builder 静态内部类。
 ```
 CartItem.builder()
-        .userId("1001")
+        .userId(1001L)
         .productId("p001")
         .specId("s001")
         .quantity(1)
@@ -39,7 +39,7 @@ CartItem.builder()
 @Accessors(chain = true)
 //`@Accessors` 也是 Lombok 注解，`chain=true` 代表开启链式 setter
 /** CartItem item = new CartItem()
-*        .setUserId("1001")
+*        .setUserId(1001L)
 *        .setProductId("p001")
 *        .setQuantity(2);
  *        对象已经存在，需要修改属性；部分字段赋值
@@ -51,7 +51,7 @@ public class CartItem implements Serializable {
  * 是序列化版本号，用来在反序列化时校验序列化对象和当前类版本是否一致。
  * CartItem 存入 Redis，Redis 用 JDK 序列化时，就要求实体类实现 Serializable。
  * 1.
- * 只要类实现这个接口，就告诉 JVM：这个类的对象可以被**序列化 / 反序列化**。
+ * 只要类实现这个接口，就告诉 JVM：这个类的对象可以被序列化 / 反序列化。
  * - 序列化：把内存中的 Java 对象 → 字节数组（存入 Redis、文件、网络传输）
  * - 反序列化：字节数组 → 还原成内存 Java 对象
  * 2。
@@ -73,7 +73,8 @@ public class CartItem implements Serializable {
     /**
      * 用户 ID
      */
-    private String userId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Long userId;
     /**
      * 商品 ID
      */

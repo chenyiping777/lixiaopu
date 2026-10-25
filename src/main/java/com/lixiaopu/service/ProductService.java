@@ -1,16 +1,17 @@
 package com.lixiaopu.service;
 
+import com.lixiaopu.common.result.CursorCommonEntity;
+import com.lixiaopu.common.result.CursorCommonResult;
 import com.lixiaopu.common.result.Result;
+import com.lixiaopu.common.result.SimpleCursorCommonResult;
+import com.lixiaopu.infrastructure.es.document.ProductDocument;
 import com.lixiaopu.pojo.entity.Product;
+import com.lixiaopu.pojo.vo.SimpleProductVO;
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.lixiaopu.pojo.query.ProductQuery;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
 * @author Mlpnk
@@ -19,23 +20,25 @@ import java.util.Set;
 */
 public interface ProductService extends IService<Product> {
 
+    Long createProduct(Product product);
+
+    Long updateProduct(Long id, Product product);
+
+    void deleteProduct(Long id);
+
     List<ProductDocument> getHotProduct(Integer limit);
 
-    Result getProductDetail(String productId, String userId);
+    Result getProductDetail(String productId, Long userId);
 
     CursorCommonResult searchProductList(CursorCommonEntity cursorCommonEntity ,String keyword);
 
-    List<ProductDocument> getProductRelated(String productName, Integer limit);
+    List<SimpleProductVO> getProductRelated(String productName, Integer limit);
 
-    Result getProductSpecPrice(String productId, String specId);
 
-    Result<List<SimpleProductVO>> getBriefProduct(String productIds);
+    Result getBriefProduct(String productIds);
 
-    Result getCategoryProductList(@NotBlank String categoryId, String beginProductId, String sortType);
 
     SimpleCursorCommonResult getSimpleProductByScrollQuery(Long beginId , Integer querySize);
-
-    Map<Long, Product> getProductDetailByProductIdSet(Set<Long> productIdSet);
 
     CursorCommonResult getCategorySimpleProduct(@Valid @NotNull CursorCommonEntity cursorCommonEntity , Long categoryId , boolean isFirstCategoryId);
 

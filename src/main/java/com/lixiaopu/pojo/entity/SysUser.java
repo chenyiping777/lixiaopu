@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.baomidou.mybatisplus.annotation.*;
 
 import java.io.Serial;
@@ -31,6 +33,7 @@ public class SysUser implements Serializable {
      * 主键 ID
      */
     @TableId(type = IdType.AUTO) // 对应数据库的 auto_increment 自增策略
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
 
     /**

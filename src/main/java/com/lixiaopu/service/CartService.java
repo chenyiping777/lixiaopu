@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.spring.service.IService;
 import com.lixiaopu.common.result.Result;
 import com.lixiaopu.pojo.dto.CartDTO;
 import com.lixiaopu.pojo.dto.CartProductDTO;
+import com.lixiaopu.pojo.dto.OrderItemDTO;
+import com.lixiaopu.pojo.entity.OrderItem;
+import java.util.List;
 
 /**
 * @author Mlpnk
@@ -22,6 +25,11 @@ public interface CartService extends IService<Cart> {
     Result deleteCartProduct(String productIds, String specIds);
 
     Result mergeCart(CartDTO cart);
+
+    Result updateQuantity(CartProductDTO item);
+
+
+    Result removeOrderedProducts(List<OrderItem> items);
 
     void syncCartToMysql(Long userId);
 }

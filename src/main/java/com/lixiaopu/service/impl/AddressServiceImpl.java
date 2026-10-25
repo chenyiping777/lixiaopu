@@ -41,13 +41,15 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address>
     @Transactional(rollbackFor = Exception.class)
     public Result insertAddress(AddressDTO addressDTO) {
         long userId = CurrentHolder.getCurrentUser().getId();
-        // 创建地址对象并复制属性
+        // DTO 的收件人字段和默认标记与实体名称/类型不同，需要显式映射。
         Address address = new Address();
-        BeanUtil.copyProperties(addressDTO, address);
+        BeanUtil.copyProperties(addressDTO, address, "isDefault");
+        address.setReceiver(addressDTO.getReceiverName());
+        address.setPhone(addressDTO.getReceiverPhone());
+        address.setIsDefault(Boolean.TRUE.equals(addressDTO.getIsDefault())?CommonDefault.DEFAULT:CommonDefault.NO_DEFAULT);
         address.setUserId(userId);
-        //获得当前代理对象
-        AddressServiceImpl addressService = (AddressServiceImpl) AopContext.currentProxy();
-        addressService.makeOnlyHaveOneDefault(addressDTO, userId);
+        // 当前 public 方法已经开启事务，内部 helper 无需获取 AOP 代理。
+        makeOnlyHaveOneDefault(addressDTO, userId);
         // 保存地址
         boolean isSuccess = save(address);
         if (!isSuccess) {
@@ -62,10 +64,10 @@ public class AddressServiceImpl extends ServiceImpl<AddressMapper, Address>
     @Transactional(rollbackFor = Exception.class)
     void makeOnlyHaveOneDefault(AddressDTO addressDTO, long userId) {
         // 如果本次地址要设为默认
-        if (addressDTO.getIsDefault()) {
+        if (Boolean.TRUE.equals(addressDTO.getIsDefault())) {
             lambdaUpdate()
                     .eq(Address::getUserId, userId)
-                    .ne(Address::getId, addressDTO.getId()) // 排除当前正在修改的地址
+                    .ne(addressDTO.getId()!=null, Address::getId, addressDTO.getId()) // 新建时不添加 id<>null
                     .set(Address::getIsDefault, CommonDefault.NO_DEFAULT.getNumber())
                     .update();
         }

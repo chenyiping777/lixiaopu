@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.baomidou.mybatisplus.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ public class Cart {
      * 对应数据库字段：user_id
      */
     @TableField(value = "user_id")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long userId;
 
     /**

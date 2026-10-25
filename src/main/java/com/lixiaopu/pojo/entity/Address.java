@@ -28,6 +28,7 @@ public class Address {
     /**
      * 关联用户 ID
      */
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long userId;
 
     /**

@@ -1,0 +1,153 @@
+# 公共配置及 user/admin 差异统一维护在本文件。
+# 实际地址、账号、密码等从 application-dev.yml 读取，不使用环境变量占位符。
+spring:
+  config:
+    import: classpath:application-dev.yml
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${dev.mysql.url}
+    username: ${dev.mysql.username}
+    password: ${dev.mysql.password}
+  data:
+    redis:
+      host: ${dev.redis.host}
+      port: ${dev.redis.port}
+      password: ${dev.redis.password}
+      database: ${dev.redis.database}
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+  elasticsearch:
+    uris: ${dev.elasticsearch.uris}
+    username: ${dev.elasticsearch.username}
+    password: ${dev.elasticsearch.password}
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+lixiaopu:
+  auth:
+    jwt-secret: ${dev.auth.jwt-secret}
+    issuer: lixiaopu
+    access-ttl: 15m
+    refresh-ttl: 7d
+  elasticsearch:
+    product-index: ${dev.elasticsearch.product-index}
+  wechat:
+    app-id: ${dev.wechat.app-id}
+    app-secret: ${dev.wechat.app-secret}
+  sms:
+    endpoint: ${dev.sms.endpoint}
+    api-key: ${dev.sms.api-key}
+    sign: ${dev.sms.sign}
+    template: ${dev.sms.template}
+
+# 未启用时不初始化 SDK，也不访问微信证书服务。
+wxpay:
+  enabled: ${dev.wxpay.enabled:false}
+  merchant-id: ${dev.wxpay.merchant-id:}
+  api-v3-key: ${dev.wxpay.api-v3-key:}
+  cert-serial-number: ${dev.wxpay.cert-serial-number:}
+  private-key-path: ${dev.wxpay.private-key-path:}
+  app-id: ${dev.wxpay.app-id:}
+  notify-url: ${dev.wxpay.notify-url:}
+  refund-notify-url: ${dev.wxpay.refund-notify-url:}
+  refund-scan-ms: 60000
+
+
+aliyun:
+  oss:
+    endpoint: ${dev.oss.endpoint}
+    accessKeyId: ${dev.oss.access-key-id}
+    accessKeySecret: ${dev.oss.access-key-secret}
+    bucketName: ${dev.oss.bucket-name}
+
+redis:
+  cache:
+    count:
+      hot-product-cache-size: 20
+    ttl:
+      product-detail-ttl: 1800
+      product-collection-ttl: 600
+      product-empty-ttl: 60
+      cart-ttl: 7200
+      order-detail-ttl: 300
+      order-empty-ttl: 30
+
+product:
+  hot:
+    schedule-zone: Asia/Shanghai
+  max-id:
+    schedule-zone: Asia/Shanghai
+
+order:
+  payment-timeout-seconds: 3600
+  freight: 6.00
+  timeout-scan-ms: 60000
+
+# 商品和购券共用一个底层雪花序列；每个运行实例必须使用不同的节点组合。
+# user/admin 默认不同；启动同一应用的多个副本时也必须逐实例覆盖节点配置。
+snowflake:
+  machineId: ${spring.snowflake.worker-id}
+  datacenterId: ${spring.snowflake.data-center-id}
+
+# RocketMQ 部署验收后取消以下注释；未启用时保留现有本地处理分支。
+# rocketmq:
+#   name-server: ${dev.rocketmq.name-server}
+#   producer:
+#     group: ${dev.rocketmq.producer-group}
+#     send-message-timeout: 5000
+
+# 秒杀默认使用用户端后台任务落单；启用 MQ 后使用独立 Topic/消费组。
+seckill:
+  dispatch-delay-ms: 1000
+  reservation-recovery-ms: 10000
+  mq:
+    enabled: false
+    topic: lixiaopu-seckill
+    namesrv: ${dev.rocketmq.name-server}
+    producer-group: lixiaopu-seckill-producer
+    consumer-group: lixiaopu-seckill-consumer
+
+---
+# 用户端：启动 LixiaopuApplication 自动启用 user。
+spring:
+  config:
+    activate:
+      on-profile: user
+  application:
+    name: lixiaopu
+  web:
+    resources:
+      static-locations: classpath:/static/
+  snowflake:
+    worker-id: ${dev.user.worker-id}
+    data-center-id: ${dev.snowflake.data-center-id}
+server:
+  port: ${dev.user.port}
+
+---
+# 管理端：启动 AdminApplication 自动启用 admin。
+spring:
+  config:
+    activate:
+      on-profile: admin
+  application:
+    name: lixiaopu-admin
+  web:
+    resources:
+      static-locations: classpath:/admin-static/
+  snowflake:
+    worker-id: ${dev.admin.worker-id}
+    data-center-id: ${dev.snowflake.data-center-id}
+server:
+  port: ${dev.admin.port}
+lixiaopu:
+  bootstrap:
+    username: ${dev.bootstrap.username}
+    password: ${dev.bootstrap.password}
+    phone: ${dev.bootstrap.phone}

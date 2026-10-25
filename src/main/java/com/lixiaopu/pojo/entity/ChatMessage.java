@@ -1,5 +1,7 @@
 package com.lixiaopu.pojo.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -12,7 +14,9 @@ import lombok.Data;
 public class ChatMessage {
     @TableId(type = IdType.AUTO)
     private Long id;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long fromUserId;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long toUserId;
     private String content;
     private Integer msgType;
