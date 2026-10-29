@@ -1,5 +1,7 @@
 package com.lixiaopu.controller.admin;
 
+import com.lixiaopu.security.ClientType;
+
 import com.lixiaopu.pojo.dto.AuthDtos;
 import com.lixiaopu.service.AuthService;
 import com.lixiaopu.common.context.AuthContext;
@@ -19,7 +21,7 @@ public class AdminAuthController {
 
     @PostMapping("/login")
     public Result login(@Valid @RequestBody AuthDtos.Login request) {
-        return Result.success(authService.login(request,"ADMIN"));
+        return authService.login(request,ClientType.ADMIN);
     }
     @PostMapping("/sms")
     public Result sms(@Valid @RequestBody AuthDtos.Sms request) {
@@ -47,7 +49,7 @@ public class AdminAuthController {
     }
     @PostMapping("/refresh")
     public Result refresh(@Valid @RequestBody AuthDtos.Refresh request) {
-       return authService.refresh(request.getRefreshToken(),"ADMIN");
+       return authService.refresh(request.getRefreshToken(),ClientType.ADMIN);
 
     }
     @PostMapping("/logout")

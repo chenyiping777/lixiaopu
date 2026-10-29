@@ -34,6 +34,18 @@ public class ProductRelationsService {
         saveSpecs(product);
     }
 
+    /** 管理台编辑读取完整快照，包含已下架商品，避免列表摘要覆盖描述和图册。 */
+    public Product detail(Long id) {
+        Product product = productMapper.selectById(id);
+        if (product == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "商品不存在");
+        product.setSpecList(productSpecMapper.selectList(Wrappers.<ProductSpec>lambdaQuery()
+                .eq(ProductSpec::getProductId, id).orderByAsc(ProductSpec::getId)));
+        product.setImageUrls(productImageMapper.selectList(Wrappers.<ProductImage>lambdaQuery()
+                .eq(ProductImage::getProductId, id).orderByAsc(ProductImage::getSort, ProductImage::getId))
+                .stream().map(ProductImage::getImageUrl).toList());
+        return product;
+    }
+
     private void saveImages(Product product) {
         if (product.getImageUrls() == null) return;
         productImageMapper.delete(Wrappers.<ProductImage>lambdaQuery().eq(ProductImage::getProductId, product.getId()));

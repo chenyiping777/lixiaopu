@@ -407,31 +407,6 @@ window.LEGACY_API_CATALOG = [
     "browserUnsupported": false
   },
   {
-    "id": 20,
-    "title": "查询商品规格价格 — 匿名可访问",
-    "group": "products",
-    "method": "GET",
-    "path": "/api/product/spec/price",
-    "params": [
-      [
-        "productId",
-        "10001"
-      ],
-      [
-        "specId",
-        "20001"
-      ]
-    ],
-    "body": "",
-    "auth": false,
-    "optionalAuth": false,
-    "notes": [
-      "布隆过滤不通过时直接 return null，可能得到空响应体；正常成功才是下方 JSON。"
-    ],
-    "upload": false,
-    "browserUnsupported": false
-  },
-  {
     "id": 21,
     "title": "滚动查询商品列表 — 匿名可访问",
     "group": "products",
@@ -741,18 +716,30 @@ window.LEGACY_API_CATALOG = [
     "title": "查询分类商品列表 — 匿名可访问",
     "group": "products",
     "method": "GET",
-    "path": "/api/category/product/list/101/0",
+    "path": "/api/products/product/category/list",
     "params": [
       [
         "sortType",
         "default"
+      ],
+      [
+        "categoryId",
+        "101"
+      ],
+      [
+        "isFirstCategoryId",
+        "false"
+      ],
+      [
+        "querySize",
+        "20"
       ]
     ],
     "body": "",
     "auth": false,
     "optionalAuth": false,
     "notes": [
-      "首屏 beginProductId=0；该旧接口是批内排序而非全局排序，末条ID游标可能与排序不一致，优先使用 /product/categroy/list。空结果 data=[]。"
+      "分类浏览统一使用 ES 游标分页；一级分类传 isFirstCategoryId=true，后续请求携带响应中的 sortValue 和 sortId。"
     ],
     "upload": false,
     "browserUnsupported": false
@@ -916,11 +903,11 @@ window.LEGACY_API_CATALOG = [
     "method": "POST",
     "path": "/api/order/create",
     "params": [],
-    "body": "{\n  \"addressId\": \"30001\",\n  \"remark\": \"请尽快发货\",\n  \"freight\": \"6.00\",\n  \"totalAmount\": \"65.80\",\n  \"orderItems\": [\n    {\n      \"productId\": \"10001\",\n      \"specId\": \"20001\",\n      \"quantity\": 2,\n      \"price\": \"29.90\",\n      \"productName\": \"糖炒板栗\",\n      \"productImage\": \"https://example.com/chestnut.jpg\",\n      \"specText\": \"500g/袋\"\n    }\n  ]\n}",
+    "body": "{\"addressId\":\"30001\",\"remark\":\"请尽快发货\",\"orderItems\":[{\"productId\":\"10001\",\"specId\":\"20001\",\"quantity\":2}]}",
     "auth": true,
     "optionalAuth": false,
     "notes": [
-      "金额、单价与运费当前直接采用客户端数据，未见服务端重算或扣库存。延迟任务的 threadPool 字段仅有 @Qualifier 未注入，创建链路可能异常；下方为成功分支结构示例。"
+      "后端查询商品和规格生成价格与快照，运费由服务端配置；尚未扣库存。"
     ],
     "upload": false,
     "browserUnsupported": false
@@ -933,32 +920,13 @@ window.LEGACY_API_CATALOG = [
     "path": "/api/order/list",
     "params": [
       [
-        "pageNum",
-        "1"
+        "beginId",
+        ""
       ],
       [
         "pageSize",
         "10"
       ],
-      [
-        "status",
-        "pendingPayment"
-      ]
-    ],
-    "body": "",
-    "auth": true,
-    "optionalAuth": false,
-    "notes": [],
-    "upload": false,
-    "browserUnsupported": false
-  },
-  {
-    "id": 50,
-    "title": "查询指定页面订单列表  — 需要登录",
-    "group": "orders",
-    "method": "GET",
-    "path": "/api/order/page/list",
-    "params": [
       [
         "pageName",
         "allPage"
@@ -967,9 +935,7 @@ window.LEGACY_API_CATALOG = [
     "body": "",
     "auth": true,
     "optionalAuth": false,
-    "notes": [
-      "无订单时直接成功且省略 data；pageName 使用页面枚举，不是 status。"
-    ],
+    "notes": ["按 Tab 和 ID 倒序游标加载，返回 data.list（含商品明细）、endId（字符串）、hasMore；首批不传 beginId，后续传上一批 endId；切换分类重置游标。"],
     "upload": false,
     "browserUnsupported": false
   },
@@ -1109,40 +1075,21 @@ window.LEGACY_API_CATALOG = [
   },
   {
     "id": 57,
-    "title": "查询物流信息 — 需要登录",
+    "title": "管理员修改订单配送状态",
     "group": "orders",
-    "method": "GET",
-    "path": "/api/order/logistics",
+    "method": "PUT",
+    "path": "/api/admin/orders/260921100000123456/status",
     "params": [
-      [
-        "orderNo",
-        "260921100000123456"
-      ]
+      ["status", "4"]
     ],
     "body": "",
     "auth": true,
     "optionalAuth": false,
     "notes": [
-      "查询已存物流记录，未见实时物流供应商调用。"
+      "使用管理端 8082 和管理员 Bearer Token；4=待收货，5=完成，只允许顺序推进和同状态重试。"
     ],
     "upload": false,
     "browserUnsupported": false
-  },
-  {
-    "id": 58,
-    "title": "滚动查询订单列表 — 需要登录",
-    "group": "orders",
-    "method": "GET",
-    "path": "/api/order/scroll/query/list",
-    "params": [],
-    "body": "{\n  \"beginId\": null\n}",
-    "auth": true,
-    "optionalAuth": false,
-    "notes": [
-      "实际每批80条；GET 必须带 JSON body，浏览器 fetch 不支持此用法。返回原始 Order 实体；空结果分支漏了 build()，首屏空集还可能触发 null 拆箱异常。"
-    ],
-    "upload": false,
-    "browserUnsupported": true
   },
   {
     "id": 59,
@@ -1364,22 +1311,6 @@ window.LEGACY_API_CATALOG = [
     "auth": true,
     "optionalAuth": false,
     "notes": [],
-    "upload": false,
-    "browserUnsupported": false
-  },
-  {
-    "id": 72,
-    "title": "发行优惠券 — 需要登录",
-    "group": "admin",
-    "method": "POST",
-    "path": "/api/admin/coupon/release",
-    "params": [],
-    "body": "{\n  \"activityName\": \"满100减10\",\n  \"couponType\": 1,\n  \"faceValue\": 10,\n  \"discountRate\": null,\n  \"maxDiscount\": null,\n  \"minSpend\": 100,\n  \"totalQuota\": 1000,\n  \"validMode\": 1,\n  \"validStart\": \"2026-09-21T00:00:00\",\n  \"validEnd\": \"2026-10-21T23:59:59\",\n  \"receiveValidDays\": null,\n  \"limitPerPerson\": 1,\n  \"userLimitType\": 1,\n  \"useScope\": 1,\n  \"mutexGroupId\": 0,\n  \"status\": 1,\n  \"releaseTime\": \"2026-09-21T10:00:00\"\n}",
-    "auth": true,
-    "optionalAuth": false,
-    "notes": [
-      "当前公开 Controller 只实现发行；没有领券、核销、优惠试算接口。此方法未直接刷新优惠券缓存，不能描述成完整营销闭环。"
-    ],
     "upload": false,
     "browserUnsupported": false
   },

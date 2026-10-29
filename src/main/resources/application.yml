@@ -89,6 +89,22 @@ order:
   freight: 6.00
   timeout-scan-ms: 60000
 
+# 两端连接用户进程中的同一个 Netty 服务。生产环境配置 public-url 和 allowed-origins。
+chat:
+  enabled: true
+  host: 0.0.0.0
+  port: 9090
+  idle-seconds: 60
+  business-threads: 8
+  public-url: ""
+  allowed-origins:
+    - http://localhost:8080
+    - http://127.0.0.1:8080
+    - http://localhost:8081
+    - http://localhost:8082
+    - http://127.0.0.1:8081
+    - http://127.0.0.1:8082
+
 # 商品和购券共用一个底层雪花序列；每个运行实例必须使用不同的节点组合。
 # user/admin 默认不同；启动同一应用的多个副本时也必须逐实例覆盖节点配置。
 snowflake:

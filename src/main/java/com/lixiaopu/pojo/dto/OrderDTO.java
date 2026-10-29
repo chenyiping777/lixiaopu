@@ -15,6 +15,7 @@ public class OrderDTO {
     @Pattern(regexp = "CART|DIRECT", message = "下单来源只能为 CART 或 DIRECT")
     private String source = "DIRECT";
     @Pattern(regexp = "[1-9][0-9]*", message = "地址ID必须为正整数")
+    @DecimalMax(value = "9223372036854775807", message = "地址ID超出范围")
     private String addressId;
     @Size(max = 255, message = "订单备注不能超过255字")
     private String remark;
@@ -23,6 +24,7 @@ public class OrderDTO {
     private String freight;
 
     @NotEmpty(message = "订单明细不能为空")
+    @Size(max = 100, message = "订单明细最多100项")
     @Valid
     private List<@NotNull(message = "订单明细项不能为空") OrderItemDTO> orderItems;
 }

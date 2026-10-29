@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>轮播图管理 · 栗小铺</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f2eb;color:#302d28;font:15px/1.7 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1100px;margin:30px auto;padding:0 20px}.panel{background:white;border:1px solid #e2ddd3;border-radius:12px;padding:24px;margin:20px 0}form{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{display:block}input,select,button{font:inherit;padding:9px;border:1px solid #d6cec2;border-radius:6px}label input,label select{display:block;width:100%}button{cursor:pointer;background:#a45d36;color:white}button:disabled{opacity:.5}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:10px;border-bottom:1px solid #e2ddd3}td img{width:110px;height:60px;object-fit:contain}td input{width:80px}.table-wrap{overflow:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}#status{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#8c4d2c}@media(max-width:650px){form{grid-template-columns:1fr}}
+</style><script src="banners.js" defer></script></head>
+<body><main><a href="console.html">← 管理端首页</a><h1>首页轮播图管理</h1><p>请先在管理端首页登录。启用的图片按排序值从小到大展示。</p>
+<p id="status" role="status" aria-live="polite"></p>
+<section class="panel"><h2 id="form-title">新增轮播图</h2><form id="banner-form">
+<label>轮播图 ID（修改时填写）<input name="id" inputmode="numeric" pattern="[1-9][0-9]*" placeholder="新增时留空"></label>
+<label>标题<input name="title" maxlength="128" required></label>
+<label>图片地址<input name="imageUrl" maxlength="1024" required placeholder="https://... 或 /images/..."></label>
+<label>跳转地址<input name="linkUrl" maxlength="1024" placeholder="可留空"></label>
+<label>链接类型<input name="linkType" maxlength="32" placeholder="可留空"></label>
+<label>排序值<input name="sort" type="number" min="0" max="2147483647" step="1" value="0" required></label>
+<label>状态<select name="status"><option value="1">启用</option><option value="0">禁用</option></select></label>
+<div class="actions"><button>保存轮播图</button><button id="reset-form" type="button">切换为新增</button></div>
+</form></section>
+<section class="panel"><div class="actions"><h2>轮播图列表</h2><button id="reload" type="button">刷新</button></div>
+<div class="table-wrap"><table><thead><tr><th>图片</th><th>ID / 标题</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="actions"><button id="prev" type="button">上一页</button><span id="page-info"></span><button id="next" type="button">下一页</button></div></section>
+</main></body></html>

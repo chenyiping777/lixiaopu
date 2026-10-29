@@ -1,5 +1,7 @@
 package com.lixiaopu.controller.user;
 
+import com.lixiaopu.security.ClientType;
+
 import com.lixiaopu.pojo.dto.AuthDtos;
 import com.lixiaopu.pojo.dto.UserWechatDTO;
 import com.lixiaopu.service.AuthService;
@@ -46,7 +48,7 @@ public class LoginController {
     //登录
     @PostMapping("/login")
     public Result login(@Valid @RequestBody AuthDtos.Login request) {
-        return authService.login(request,"BUYER");
+        return authService.login(request,ClientType.BUYER);
     }
     /**
      * 1. 前端输入微信 code，调用这个接口
@@ -116,7 +118,7 @@ public class LoginController {
      *      */
     @PostMapping("/refresh")
     public Result refresh(@Valid @RequestBody AuthDtos.Refresh request) {
-        return authService.refresh(request.getRefreshToken(),"BUYER");
+        return authService.refresh(request.getRefreshToken(),ClientType.BUYER);
     }
 
     /**

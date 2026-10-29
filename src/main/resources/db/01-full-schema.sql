@@ -445,6 +445,7 @@ CREATE TABLE IF NOT EXISTS `chat_message` (
   is_read TINYINT NOT NULL DEFAULT 0,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_chat_recipient(to_user_id,is_read,create_time),
+  KEY idx_chat_pair_history(from_user_id,to_user_id,create_time,id),
   FOREIGN KEY(from_user_id) REFERENCES sys_user(id),
   FOREIGN KEY(to_user_id) REFERENCES sys_user(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 chat_message';

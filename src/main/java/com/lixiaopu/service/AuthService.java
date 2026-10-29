@@ -1,5 +1,9 @@
 package com.lixiaopu.service;
 
+import com.lixiaopu.security.ClientAccessPolicy;
+
+import com.lixiaopu.security.ClientType;
+
 import com.lixiaopu.pojo.dto.AuthDtos;
 import com.lixiaopu.pojo.dto.UserWechatDTO;
 import com.lixiaopu.common.exception.AuthException;
@@ -84,15 +88,7 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
         }
     }
 
-    private boolean hasRole(long userId, String roleCode) {
-        List<SysRole> roles = authMapper.roles(userId);
-        for (SysRole role : roles) {
-            if (roleCode.equals(role.getRoleCode())) {
-                return true;
-            }
-        }
-        return false;
-    }
+
 
 
     /**
@@ -162,17 +158,17 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
     }
 
     //手机号密码登录
-    public Result login(AuthDtos.Login request, String device) {
+    public Result login(AuthDtos.Login request, ClientType clientType) {
         // 根据手机号查询用户
         SysUser user = findByPhone(request.getPhone());
-        // 验证用户是否存在且已启用，密码是否匹配，设备是否允许登录，后面颁发token的时候还需要再校验一次，
+        // 验证用户是否存在且已启用，密码是否匹配，该端是否允许登录，后面颁发token的时候还需要再校验一次，
         // 因为这两个操作时间有间隔，可能用户已经禁用或者密码已经修改
         if (user == null) {
             throw new AuthException(ResultCode.USER_NOT_EXIST);
         }
         // 验证用户是否已启用
-        //从数据库里验证用户是否是前面传回来的device
-        if (user.getIsEnable() != CommonStatus.ACTIVE||!canLogin(user, device)) {
+        //使用当前用户类型与角色，校验是否允许登录指定业务端
+        if (user.getIsEnable() != CommonStatus.ACTIVE||!ClientAccessPolicy.allows(user, clientType, authMapper.roles(user.getId()))) {
             throw new AuthException(ResultCode.LOGIN_ERROR);
         }
 
@@ -189,36 +185,9 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
 
         // 更新登录时间
         updateLoginTime(user);
-        return tokenService.issue(user.getId(), device, user.getAuthVersion());
+        return tokenService.issue(user.getId(), clientType, user.getAuthVersion());
     }
 
-    //验证用户是否允许登录，根据用户类型和设备
-    private boolean canLogin(SysUser user, String device) {
-        Byte userType = user.getUserType();
-        // 用户类型为空，直接禁止登录
-        if (userType == null) {
-            return false;
-        }
-        if (BUYER_ROLE.equals(device)) {
-            // 买家端登录：用户类型必须是买家，并且拥有买家角色
-            return userType == BUYER_TYPE && hasRole(user.getId(), BUYER_ROLE);
-        } else if (ADMIN_ROLE.equals(device)) {
-            // 管理后台登录分支
-            if (userType == SYS_ADMIN_TYPE) {
-                // 超级管理员：校验是否拥有超级管理员角色
-                return hasRole(user.getId(), SYS_ADMIN_ROLE);
-            } else if (userType == ADMIN_TYPE) {
-                // 普通管理员：类型匹配 + 拥有管理员角色
-                return hasRole(user.getId(), ADMIN_ROLE);
-            } else {
-                // 其他类型用户（如买家）禁止登录后台
-                return false;
-            }
-        } else {
-            // 未知终端，不允许登录
-            return false;
-        }
-    }
 
     private void updateLoginTime(SysUser user) {
         //获取当前时间
@@ -262,14 +231,14 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
         }
         // 验证用户是否已启用且允许登录
         if (user == null || user.getIsEnable() != CommonStatus.ACTIVE
-                || !canLogin(user, BUYER_ROLE)) {
+                || !ClientAccessPolicy.allows(user, ClientType.BUYER, authMapper.roles(user.getId()))) {
             throw new AuthException(ResultCode.LOGIN_ERROR);
         }
 
         // 更新登录时间
         updateLoginTime(user);
         // 颁发token
-        return tokenService.issue(user.getId(), BUYER_ROLE, user.getAuthVersion());
+        return tokenService.issue(user.getId(), ClientType.BUYER, user.getAuthVersion());
     }
 
     //发送短信验证码
@@ -366,8 +335,8 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
         tokenService.revokeAll(uid);
     }
 
-    public Result refresh(String refreshToken, String device) {
-        return Result.success(tokenService.rotate(refreshToken, device));
+    public Result refresh(String refreshToken, ClientType clientType) {
+        return Result.success(tokenService.rotate(refreshToken, clientType));
     }
 
     public Result logout() {

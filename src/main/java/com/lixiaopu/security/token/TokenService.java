@@ -1,5 +1,9 @@
 package com.lixiaopu.security.token;
 
+import com.lixiaopu.security.ClientType;
+import com.lixiaopu.security.IdentitySnapshot;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import com.lixiaopu.common.util.JwtUtil;
 import com.lixiaopu.properties.AuthProperties;
 
@@ -16,7 +20,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -27,7 +31,7 @@ import java.util.*;
 @Service
 public class TokenService {
 
-    @Data
+    @Getter
     @AllArgsConstructor
     //静态内部类：static修饰的归属类本身
     //是逻辑上隶属于外部类的命名空间，内存上是独立的两个class
@@ -36,9 +40,15 @@ public class TokenService {
     //想要静态内部类的实例，都必须new静态内部类本身
     //在别的类里引用，必须加上外部类作为前缀，在外部类自己的代码里面可以省略
     public static class Principal {
-        private long uid;
-        private String sid;
-        private String device;
+        private final long uid;
+        private final String sid;
+        private final ClientType clientType;
+        @JsonIgnore
+        private final IdentitySnapshot identity;
+
+        public Principal(long uid, String sid, ClientType clientType) {
+            this(uid, sid, clientType, null);
+        }
     }
 
     @Autowired
@@ -71,9 +81,9 @@ public class TokenService {
     //生成用户索引Key，用于快速查找用户会话
     private String indexKey(long id) { return "lxp:auth:user:"+id; }
 
-    //生成会话值，包含用户ID、设备、授权版本和刷新令牌
-    private String value(long uid, String device, long version, String refresh) {
-        return uid+"|"+device+"|"+version+"|"+digest(refresh);
+    //生成会话值，包含用户ID、访问端、授权版本和刷新令牌
+    private String value(long uid, ClientType clientType, long version, String refresh) {
+        return uid+"|"+Objects.requireNonNull(clientType, "clientType").name()+"|"+version+"|"+digest(refresh);
     }
     private SysUser active(long id) {
         SysUser user=userMapper.selectById(id);
@@ -84,11 +94,11 @@ public class TokenService {
     /**
      * 颁发登录令牌（accessToken + refreshToken）
      * @param id 用户ID
-     * @param device 登录设备标识 BUYER / ADMIN
+     * @param clientType 登录端类型 BUYER / ADMIN
      * @param expectedVersion 用户授权版本号 authVersion
      * @return Tokens 令牌对象，包含access、refresh、uid、会话sid
      */
-    public Result issue(Long id, String device, Long expectedVersion) {
+    public Result issue(Long id, ClientType clientType, Long expectedVersion) {
         // 1. 签发前再次查询启用状态的用户，校验授权版本号
         SysUser user = active(id);
         // expectedVersion 是签发token时传入的authVersion，和数据库最新authVersion比对
@@ -113,7 +123,7 @@ public class TokenService {
 
         // 4. Redis Lua脚本：原子完成会话存储 + 用户会话索引维护 + 清理过期会话
         // KEYS[1] = sessionKey(sid)  单个会话的key，存储会话详情
-        // ARGV[1] = 会话序列化value(id,device,expectedVersion,refresh)
+        // ARGV[1] = 会话序列化value(id,clientType,expectedVersion,refresh)
         // KEYS[2] = indexKey(id)   用户维度zset索引，保存该用户所有会话sid，score=过期时间戳
         // ARGV[2] = 会话key的EX过期时间（秒）
         // ARGV[3] = ZADD score：sid的过期时间戳
@@ -134,7 +144,7 @@ public class TokenService {
         Long written = stringRedisTemplate.execute(
                 new DefaultRedisScript<>(script, Long.class),
                 List.of(sessionKey(sid), indexKey(id)),
-                value(id, device, expectedVersion, refresh),//ARGV[1]
+                value(id, clientType, expectedVersion, refresh),//ARGV[1]
                 Long.toString(ttl),//ARGV[2]
                 Long.toString(now.getEpochSecond() + ttl),//ARGV[3]
                 sid,//ARGV[4]
@@ -157,27 +167,27 @@ public class TokenService {
     }
 
     //2.1.校验jwt签名是否合法，有没有过期，解析载荷封装principle对象
-    public Principal verifyAccess(String token, String expectedDevice) {
+    public Principal verifyAccess(String token, ClientType expectedClientType) {
         //claims 存用户id和会话id
         //校验是否过期，是否合法
         JwtUtil.TokenClaims claims = jwtUtil.parse(token, "access");
         long id = claims.getUid();
         String sid = claims.getSid();
         // KEYS[1] = sessionKey(sid)  单个会话的key，存储会话详情
-        // ARGV[1] = 会话序列化value(uid,device,expectedVersion,refresh)
+        // ARGV[1] = 会话序列化value(uid,clientType,expectedVersion,refresh)
         String session=stringRedisTemplate.opsForValue().get(sessionKey(sid));
         SysUser user=active(id);
         //redis查询session，从会话完整信息里校验，会话是否存在（有没有被踢下线，退出登录）
-        //当前请求的设备和登录时存的设备是否一致，认证版本号是否匹配
-        if (session==null || !session.startsWith(id+"|"+expectedDevice+"|"+user.getAuthVersion()+"|"))
+        //当前请求的访问端和登录会话所属端是否一致，认证版本号是否匹配
+        if (expectedClientType == null || session==null || !session.startsWith(id+"|"+expectedClientType.name()+"|"+user.getAuthVersion()+"|"))
             throw new AuthException(ResultCode.UNAUTHORIZED);
-        return new Principal(id,sid,expectedDevice);
+        return new Principal(id,sid,expectedClientType,IdentitySnapshot.from(user));
     }
 
     /**
      * 客户端拿着旧 refreshToken，换取新 accessToken + 新 refreshToken。
     * */
-    public AuthDtos.Tokens rotate(String token, String device) {
+    public AuthDtos.Tokens rotate(String token, ClientType clientType) {
         // 先校验刷新令牌
         JwtUtil.TokenClaims claims = jwtUtil.parse(token, "refresh");
         // 从刷新令牌中获取用户ID和会话ID
@@ -195,8 +205,8 @@ public class TokenService {
 
         String accessToken = jwtUtil.create(id, newSid, "access", now.plus(authProperties.getAccessTtl()));
         String refreshToken = jwtUtil.create(id, newSid, "refresh", now.plus(authProperties.getRefreshTtl()));
-        String oldSessionValue = value(id, device, authVersion, token);
-        String newSessionValue = value(id, device, authVersion, refreshToken);
+        String oldSessionValue = value(id, clientType, authVersion, token);
+        String newSessionValue = value(id, clientType, authVersion, refreshToken);
 
         // KEYS: 旧会话、新会话、用户会话索引。
         // ARGV: 旧会话值、新会话值、会话 TTL、旧 sid、新会话过期时间、新 sid、当前时间、索引 TTL。

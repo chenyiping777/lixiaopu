@@ -1,6 +1,7 @@
 package com.lixiaopu.pojo.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.lixiaopu.common.util.CodeUtil;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -26,6 +27,7 @@ public final class AuthDtos {
         @Pattern(regexp = PHONE_REGEX, message = "手机号格式错误")
         private String phone;
         private String password;
+        @Pattern(regexp = CodeUtil.CODE_REGEX, message = CodeUtil.CODE_FORMAT_MESSAGE)
         private String code;
 
     }
@@ -44,7 +46,7 @@ public final class AuthDtos {
         @Pattern(regexp = PHONE_REGEX, message = "手机号格式错误")
         private String phone;
         @NotBlank
-        @Pattern(regexp = "\\d{6}", message = "验证码须为 6 位数字")
+        @Pattern(regexp = CodeUtil.CODE_REGEX, message = CodeUtil.CODE_FORMAT_MESSAGE)
         private String code;
     }
 
@@ -76,7 +78,7 @@ public final class AuthDtos {
         @Pattern(regexp = PHONE_REGEX, message = "手机号格式错误")
         private String phone;
         @NotBlank
-        @Pattern(regexp = "\\d{6}", message = "验证码须为 6 位数字")
+        @Pattern(regexp = CodeUtil.CODE_REGEX, message = CodeUtil.CODE_FORMAT_MESSAGE)
         private String code;
     }
 

@@ -97,8 +97,11 @@ public class ProductHistoryService {
             }
         }
 
-        // 获取当前登录用户信息，未登录前端分流走其他接口
+        // 服务层也校验身份，避免匿名调用出现空指针或访问无效用户的历史。
         var user = CurrentHolder.getCurrentUser();
+        if (user == null || user.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
         // 组装当前用户浏览历史的Redis Key
         String userKey = key(user.getId());
 

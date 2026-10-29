@@ -1,5 +1,7 @@
 package com.lixiaopu.security.token;
 
+import com.lixiaopu.security.ClientType;
+
 import org.apache.shiro.authc.AuthenticationToken;
 import lombok.Getter;
 
@@ -10,11 +12,11 @@ public class JwtAuthenticationToken implements AuthenticationToken {
     //自定义JwtAuthenticationToken，用jwt登录
 
     private final String jwt;
-    private final String device;
+    private final ClientType clientType;
 
-    public JwtAuthenticationToken(String jwt, String device) {
+    public JwtAuthenticationToken(String jwt, ClientType clientType) {
         this.jwt = jwt;
-        this.device = device;
+        this.clientType = clientType;
     }
 
     @Override

@@ -30,6 +30,12 @@ public class ProductController {
     private final BloomFilterUtils bloomFilterUtils;
     private final ProductService productService;
     private final InventoryService inventoryService;
+    private final com.lixiaopu.service.admin.ProductRelationsService productRelationsService;
+
+    @GetMapping("/{id}")
+    public Result detail(@PathVariable @Positive Long id) {
+        return Result.success(productRelationsService.detail(id));
+    }
 
     public record StockAdjustment(
             @NotNull(message = "规格ID不能为空") @Positive(message = "规格ID必须大于0") Long specId,

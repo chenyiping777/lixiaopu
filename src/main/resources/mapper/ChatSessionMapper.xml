@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lixiaopu.mapper.ChatSessionMapper">
+    <!-- 当前项目的管理员也在 sys_user 中，不再连接原项目的 admin 表。 -->
+    <select id="selectSessionList" resultType="com.lixiaopu.pojo.vo.ChatSessionVO">
+        SELECT CASE WHEN s.user_id = #{userId} THEN s.contact_id ELSE s.user_id END AS contact_id,
+               COALESCE(u.nickname, u.username, '未知用户') AS contact_nickname,
+               COALESCE(u.avatar, '/static/images/default-avatar.png') AS contact_avatar,
+               s.last_msg_content, s.last_msg_time,
+               CASE WHEN s.user_id = #{userId} THEN s.unread_count_a ELSE s.unread_count_b END AS unread_count
+        FROM chat_session s
+        LEFT JOIN sys_user u ON u.id = CASE WHEN s.user_id = #{userId} THEN s.contact_id ELSE s.user_id END
+        WHERE s.user_id = #{userId} OR s.contact_id = #{userId}
+        ORDER BY s.last_msg_time DESC, s.id DESC
+    </select>
+    <!-- 唯一键 + 原子累加，避免原版先查后插的并发首聊冲突和计数丢失。 -->
+    <insert id="recordMessage">
+        INSERT INTO chat_session(user_id,contact_id,last_msg_content,last_msg_time,unread_count_a,unread_count_b,update_time)
+        VALUES(#{a},#{b},#{content},#{time},#{unreadA},#{unreadB},#{time})
+        ON DUPLICATE KEY UPDATE last_msg_content=VALUES(last_msg_content),last_msg_time=VALUES(last_msg_time),
+            unread_count_a=unread_count_a+VALUES(unread_count_a),
+            unread_count_b=unread_count_b+VALUES(unread_count_b),update_time=VALUES(update_time)
+    </insert>
+</mapper>

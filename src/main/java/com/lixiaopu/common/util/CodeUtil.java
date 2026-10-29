@@ -5,6 +5,9 @@ import java.util.Random;
 
 public class CodeUtil {
 
+    public static final String CODE_REGEX = "(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{5}";
+    public static final String CODE_FORMAT_MESSAGE = "验证码须为 5 位大写字母与数字混合，且至少包含一个字母和一个数字";
+
     private static final Random RANDOM = new Random();
     // 字母池（大写）
     private static final char[] LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();

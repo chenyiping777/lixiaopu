@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>处理退款 · 栗小铺</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f5f2eb;color:#302d28;font:15px/1.7 system-ui,"Microsoft YaHei",sans-serif}header{padding:20px 6%;background:#2f3e35;color:#fff}header a{color:#fff}main{max-width:950px;margin:35px auto;padding:0 20px}h1{font-size:28px}label{display:block;margin:12px 0}input,select,button{font:inherit;padding:9px 14px;border-radius:7px;border:1px solid #d6cec2}input{display:block;width:100%;margin:8px 0}button{background:#a45d36;color:#fff;border:0;cursor:pointer}button:disabled{opacity:.5}article{background:#fff;border:1px solid #e2ddd3;padding:20px;margin:16px 0;border-radius:10px;overflow-wrap:anywhere}.error{color:#aa4033}.toolbar,.pager{display:flex;align-items:center;gap:12px;flex-wrap:wrap}small{color:#746d63}#refund-status{min-height:1.7em}
+  </style>
+</head>
+<body>
+<header><a href="console.html">返回管理首页 / 登录</a></header>
+<main>
+  <h1>处理退款</h1>
+  <p>退款金额为订单原实付金额（含运费）。同意后立即提交微信，确认微信退款成功后显示“退款成功”。</p>
+  <p>退款进度随订单支付状态展示；此处只按订单号处理退款申请。</p>
+  <form id="refund-actions">
+    <label>订单号<input id="refund-order-no" required></label>
+    <label>拒绝原因（拒绝时必填）<input id="refund-reason" maxlength="200"></label>
+    <button type="submit" data-action="approve">同意退款</button>
+    <button type="submit" data-action="reject">拒绝退款</button>
+    <button type="submit" data-action="retry">同步 / 重试退款</button>
+  </form>
+  <p id="refund-status" role="status"></p>
+</main>
+<script src="/refunds.js"></script>
+</body>
+</html>

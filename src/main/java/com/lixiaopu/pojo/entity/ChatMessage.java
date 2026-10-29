@@ -8,11 +8,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 import lombok.Data;
 
-/** 对应 chat_message；业务逻辑按模块逐步实现。 */
+/** 栗子商城聊天消息：0 文本、1 图片、2 商品卡片、3 语音。 */
 @Data
 @TableName("chat_message")
 public class ChatMessage {
     @TableId(type = IdType.AUTO)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long fromUserId;
@@ -20,6 +21,7 @@ public class ChatMessage {
     private Long toUserId;
     private String content;
     private Integer msgType;
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long productId;
     private Integer isRead;
     private LocalDateTime createTime;

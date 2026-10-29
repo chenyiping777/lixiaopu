@@ -45,7 +45,7 @@ public class UserController {
 
     //分页获取收藏列表
     @GetMapping("/collection/list")
-    public Result getCollectionList(@RequestBody PageQuery pageQuery){
+    public Result getCollectionList(@jakarta.validation.Valid @ModelAttribute PageQuery pageQuery){
         return collectionService.getCollectionPage(pageQuery);
     }
 }

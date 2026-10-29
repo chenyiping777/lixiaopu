@@ -1,5 +1,7 @@
 package com.lixiaopu.security.filter;
 
+import com.lixiaopu.security.ClientType;
+
 import com.lixiaopu.common.exception.AuthException;
 import com.lixiaopu.security.token.JwtAuthenticationToken;
 
@@ -10,8 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lixiaopu.common.context.CurrentHolder;
 import com.lixiaopu.common.result.Result;
 import com.lixiaopu.common.result.ResultCode;
-import com.lixiaopu.common.result.UserInfo;
-import com.lixiaopu.mapper.SysUserMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,8 +28,6 @@ import java.io.IOException;
 public class AuthFilter extends OncePerRequestFilter {
     @Autowired
     private  DefaultSecurityManager securityManager;
-    @Autowired
-    private  SysUserMapper userMapper;
     @Autowired
     private  ObjectMapper jsonMapper;
 
@@ -48,6 +46,7 @@ public class AuthFilter extends OncePerRequestFilter {
             || path.equals("/api/address") || path.startsWith("/api/address/")
             || path.equals("/api/order") || path.startsWith("/api/order/")
             || path.equals("/api/upload/image")
+            || path.equals("/api/chat") || path.startsWith("/api/chat/")
             || path.equals("/api/auth/logout") || path.equals("/api/auth/change-password");
         boolean publicAdmin=path.equals("/api/admin/auth/login") || path.equals("/api/admin/auth/refresh") || path.equals("/api/admin/auth/sms")
             || path.equals("/api/admin/auth/reset/verify") || path.equals("/api/admin/auth/reset/password");
@@ -59,9 +58,9 @@ public class AuthFilter extends OncePerRequestFilter {
 
             Subject subject=new Subject.Builder(securityManager).buildSubject();
 
-            subject.login(new JwtAuthenticationToken(header.substring(7),admin?"ADMIN":"BUYER"));
+            subject.login(new JwtAuthenticationToken(header.substring(7),admin?ClientType.ADMIN:ClientType.BUYER));
             TokenService.Principal principal=(TokenService.Principal)subject.getPrincipal();
-            String required=admin?"admin:access":"buyer:access";
+            String required=principal.getClientType().getAccessPermission();
             if (!subject.isPermitted(required)) throw new AuthException(ResultCode.FORBIDDEN);
             if (path.equals("/api/admin/users/administrators") && !subject.hasRole("SYS_ADMIN"))
                 throw new AuthException(ResultCode.FORBIDDEN);
@@ -70,15 +69,7 @@ public class AuthFilter extends OncePerRequestFilter {
             if (path.matches("/api/admin/users/[0-9]+/disable") && !subject.isPermitted("user:disable"))
                 throw new AuthException(ResultCode.FORBIDDEN);
             AuthContext.set(principal);
-            var user=userMapper.selectById(principal.getUid());
-
-            CurrentHolder.setCurrentUser(UserInfo.builder()
-                    .id(user.getId())
-                    .nickname(user.getNickname())
-                    .avatar(user.getAvatar())
-                    .phone(user.getPhone())
-                    .openid(user.getOpenid())
-                    .build());
+            CurrentHolder.setCurrentUser(principal.getIdentity().toUserInfo());
             chain.doFilter(request,response);
         } catch (AuthException ex) {
             error(response,ex.getCode(),ex.getMessage());

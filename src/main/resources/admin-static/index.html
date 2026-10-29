@@ -4,11 +4,38 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f2eb;color:#302d28;font:15px/1.7 system-ui,"Microsoft YaHei",sans-serif}header{padding:24px 6%;background:#2f3e35;color:#fff;display:flex;justify-content:space-between;align-items:center}header strong{font-size:22px;letter-spacing:2px}header span{font-size:12px;color:#d0dccb}main{max-width:950px;margin:50px auto;padding:0 20px}h1{font-size:35px;margin:5px 0}p{color:#746d63}.eyebrow{color:#a45d36;font-size:12px;letter-spacing:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px}.card{background:#fff;border:1px solid #e2ddd3;border-radius:12px;padding:25px}h2{font-size:18px;margin-top:0}label{display:block;margin:12px 0;color:#574f46;font-size:13px}input{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #d6cec2;border-radius:7px;font:inherit}button{border:0;border-radius:7px;background:#a45d36;color:#fff;padding:10px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#272b29;color:#e8e6db;padding:18px;border-radius:8px;font:12px/1.6 Consolas,monospace}#status{min-height:2em}small{color:#817a70}.good{color:#42674b}.error{color:#aa4033}@media(max-width:700px){.grid{grid-template-columns:1fr}header{padding:16px 20px}main{margin:25px auto}}
 </style></head>
-<body><header><strong>栗小铺 · 管理端</strong><span>ADMIN / PORT 8082</span></header><main><div class="eyebrow">LIXIAOPU ADMIN</div><h1>管理从这里开始。</h1><p>独立于用户端启动。管理员必须同时拥有管理员类型和已启用的管理员角色。</p><div class="grid"><section class="card"><h2>管理员登录</h2><form id="login"><label>手机号<input name="phone" autocomplete="tel" required></label><label>密码<input name="password" type="password" autocomplete="current-password" required></label><button>登录</button></form><p id="status" role="status"></p></section><section class="card"><h2>当前身份</h2><p>登录成功后查询受保护的 <code>/api/admin/me</code>，确认管理员权限生效。</p><button id="me" type="button">查询当前管理员</button><pre id="output">等待请求。</pre><small>令牌仅保存在当前标签页，调试区不会显示令牌内容。</small></section></div></main>
+<body><header><strong>栗小铺 · 管理端</strong><span>ADMIN / PORT 8082</span></header><main><p><a href="console.html">进入完整商家中心 →</a></p><div class="eyebrow">LIXIAOPU ADMIN</div><h1>管理从这里开始。</h1><p>独立于用户端启动。管理员必须同时拥有管理员类型和已启用的管理员角色。</p><div class="grid"><section class="card"><h2>管理员登录</h2><form id="login"><label>手机号<input name="phone" autocomplete="tel" required></label><label>密码<input name="password" type="password" autocomplete="current-password" required></label><button>登录</button></form><p id="status" role="status"></p></section><section class="card"><h2>当前身份</h2><p>登录成功后查询受保护的 <code>/api/admin/me</code>，确认管理员权限生效。</p><button id="me" type="button">查询当前管理员</button><pre id="output">等待请求。</pre><small>令牌仅保存在当前标签页，调试区不会显示令牌内容。</small></section></div><section class="card"><h2>发布普通代金券</h2><p>普通购买，无抢购库存和活动窗口，付款后用于商品抵扣。金额单位为分。</p><form id="normal-voucher-create"><label>标题<input name="title" maxlength="128" required></label><label>购买价格（分）<input name="payValue" type="number" min="1" max="2147483647" step="1" required></label><label>抵扣面额（分，不低于购买价）<input name="actualValue" type="number" min="1" step="1" required></label><label>付款后使用有效天数<input name="validityDays" type="number" min="1" max="3650" step="1" value="30" required></label><button>发布普通代金券</button></form><p id="normal-voucher-result" role="status"></p></section><section class="card"><h2>普通券上下架</h2><p>下架只阻止新建购买订单，已付款的券仍可在有效期内使用。</p><form id="normal-voucher-status"><label>券模板 ID<input name="id" inputmode="numeric" pattern="[1-9][0-9]*" required></label><button type="submit" data-status="0">下架</button> <button type="submit" data-status="1">上架</button></form><p id="normal-voucher-status-result" role="status"></p></section><p><a href="/banners.html">进入首页轮播图管理 →</a></p><p><a href="/chat.html">进入在线客服 →</a></p><p><a href="/refunds.html">进入退款处理页面 →</a></p></main>
 <script>
 'use strict';
 let token=sessionStorage.getItem('lxp.admin.token')||'';
 async function send(path,method='GET',body){const response=await fetch(path,{method,headers:{Accept:'application/json',...(body?{'Content-Type':'application/json'}:{}),...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});const json=await response.json();if(!response.ok||json.code!==200)throw Error(json.message||'请求失败');return json.data}
-document.querySelector('#login').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{const data=await send('/api/admin/auth/login','POST',Object.fromEntries(new FormData(e.target)));if(!data?.token)throw Error('登录响应缺少 token');token=data.token;sessionStorage.setItem('lxp.admin.token',token);e.target.reset();document.querySelector('#status').textContent='登录成功，可查询当前身份。';document.querySelector('#status').className='good'}catch(error){document.querySelector('#status').textContent=error.message;document.querySelector('#status').className='error'}finally{button.disabled=false}});
+document.querySelector('#login').addEventListener('submit',async e=>{e.preventDefault();const button=e.submitter;button.disabled=true;try{const data=await send('/api/admin/auth/login','POST',Object.fromEntries(new FormData(e.target)));if(!data?.accessToken)throw Error('登录响应缺少 accessToken');token=data.accessToken;sessionStorage.setItem('lxp.admin.token',token);e.target.reset();document.querySelector('#status').textContent='登录成功，可查询当前身份。';document.querySelector('#status').className='good'}catch(error){document.querySelector('#status').textContent=error.message;document.querySelector('#status').className='error'}finally{button.disabled=false}});
 document.querySelector('#me').addEventListener('click',async e=>{e.target.disabled=true;try{document.querySelector('#output').textContent=JSON.stringify(await send('/api/admin/me'),null,2)}catch(error){document.querySelector('#output').textContent=error.message}finally{e.target.disabled=false}});
+
+
+document.querySelector('#normal-voucher-create').onsubmit=async e=>{
+  e.preventDefault();const button=e.submitter;button.disabled=true;
+  try{
+    if(!token)throw Error('请先登录管理员。');
+    const body=Object.fromEntries(new FormData(e.target));
+    // 金额保留十进制整数字符串，由后端按Long解析，避免大整数精度丢失。
+    if(!/^[1-9][0-9]*$/.test(body.actualValue)||!/^[1-9][0-9]*$/.test(body.payValue))throw Error('金额须为正整数分。');
+    if(BigInt(body.actualValue)<BigInt(body.payValue))throw Error('抵扣面额不能低于购买价格。');
+    body.validityDays=Number(body.validityDays);
+    const id=await send('/api/admin/vouchers/normal','POST',body);
+    document.querySelector('#normal-voucher-result').textContent='发布成功，券模板 ID：'+id+'。用户可在优惠券页面直接购买，付款后可用。';
+  }catch(error){document.querySelector('#normal-voucher-result').textContent=error.message;}
+  finally{button.disabled=false;}
+};
+document.querySelector('#normal-voucher-status').onsubmit=async e=>{
+  e.preventDefault();const button=e.submitter;button.disabled=true;
+  try{
+    if(!token)throw Error('请先登录管理员。');
+    const id=String(new FormData(e.target).get('id'));
+    if(!/^[1-9][0-9]*$/.test(id))throw Error('券模板 ID 无效。');
+    await send('/api/admin/vouchers/'+encodeURIComponent(id)+'/status?status='+button.dataset.status,'PUT');
+    document.querySelector('#normal-voucher-status-result').textContent=button.dataset.status==='1'?'已上架。':'已下架，已发券不受影响。';
+  }catch(error){document.querySelector('#normal-voucher-status-result').textContent=error.message;}
+  finally{button.disabled=false;}
+};
 </script></body></html>

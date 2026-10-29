@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 import lombok.Data;
 
-/** 对应 chat_session；业务逻辑按模块逐步实现。 */
+/** 栗子商城会话：userId 为较小 ID(A)，contactId 为较大 ID(B)。 */
 @Data
 @TableName("chat_session")
 public class ChatSession {
