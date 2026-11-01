@@ -26,6 +26,14 @@ public class ChatServiceImpl implements ChatService {
     private final SysUserMapper users;
 
     @Override
+    public List<ServiceContact> getServiceContacts() {
+        return users.selectServiceContacts()
+                .stream().map(user -> new ServiceContact(Long.toString(user.getId()),
+                        user.getNickname() == null || user.getNickname().isBlank() ? "栗小铺客服" : user.getNickname()))
+                .toList();
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public ChatMessage saveAndGetMessage(Long from, Long to, String content, Integer msgType, Long productId) {
         validatePair(from, to);

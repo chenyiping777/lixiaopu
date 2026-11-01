@@ -6,6 +6,8 @@ import com.lixiaopu.pojo.vo.ChatSessionVO;
 import java.util.List;
 
 public interface ChatService {
+    record ServiceContact(String id, String nickname) { }
+    List<ServiceContact> getServiceContacts();
     ChatMessage saveAndGetMessage(Long fromUserId, Long toUserId, String content, Integer msgType, Long productId);
     List<ChatSessionVO> getSessionList(Long userId);
     Page<ChatMessage> getChatHistory(Long userId, Long contactId, Integer page, Integer size);

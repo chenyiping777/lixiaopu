@@ -43,6 +43,9 @@ import java.util.UUID;
 
 @Service
 public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
+    private static final DefaultRedisScript<String> CONSUME_RESET_TICKET = new DefaultRedisScript<>(
+            "local ticket = redis.call('GET',KEYS[1]); "
+                    + "if ticket then redis.call('DEL',KEYS[1]); end; return ticket", String.class);
     private static final byte SYS_ADMIN_TYPE = 1;
     private static final byte ADMIN_TYPE = 2;
     private static final byte BUYER_TYPE = 3;
@@ -265,10 +268,8 @@ public class AuthService extends ServiceImpl<SysUserMapper, SysUser> {
     }
 
     public Result resetPassword(String ticket, String newPassword) {
-        DefaultRedisScript<String> script = new DefaultRedisScript<>(
-                "return redis.call('GETDEL',KEYS[1])", String.class);
-        String userId = stringRedisTemplate.execute(script, List.of("lxp:reset:" + ticket));
-        // Redis GETDEL 找不到 key 时返回 null。
+        String userId = stringRedisTemplate.execute(CONSUME_RESET_TICKET, List.of("lxp:reset:" + ticket));
+        // Lua 原子读取并删除，兼容 Redis 5；找不到 key 时返回 null。
         if (userId == null || userId.isBlank()) {
             throw new AuthException(ResultCode.VALIDATE_FAILED, "重置凭据无效或已使用");
         }

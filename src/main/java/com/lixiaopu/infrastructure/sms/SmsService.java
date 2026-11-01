@@ -46,7 +46,7 @@ public class SmsService {
             throw new AuthException(ResultCode.VALIDATE_FAILED,"发送过于频繁");
         }
         // 生成验证码
-        String code= CodeUtil.generateFiveCode();
+        String code= CodeUtil.generateSixDigitCode();
         // 存储验证码
         stringRedisTemplate.opsForValue().set("lxp:sms:"+purpose+":"+phone,
                 hash(phone,code)+"|5",Duration.ofMinutes(5));

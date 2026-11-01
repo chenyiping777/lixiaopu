@@ -42,6 +42,7 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +85,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private AddressService addressService;
 
     @Autowired
+    @Lazy // 管理端不启动延迟任务；仅在买家下单后实际投递时解析该依赖。
     private CancelUnpaidOrderDelayJob cancelUnpaidOrderDelayJob;
 
     @Autowired

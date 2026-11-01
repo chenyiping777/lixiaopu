@@ -5,6 +5,7 @@ import com.lixiaopu.common.result.Result;
 import com.lixiaopu.service.CartService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -19,6 +20,7 @@ import com.lixiaopu.job.delay.SaveCartRedisCacheDelayJob;
 public class SaveCartRedisCacheToMysqlAspect {
 
     @Autowired
+    @Lazy // 管理端不运行购物车延迟消费者，执行买家购物车操作时才解析。
     private SaveCartRedisCacheDelayJob saveCartRedisCacheDelayJob;
 
     @Autowired

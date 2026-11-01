@@ -8,5 +8,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController extends ChatEndpoints {
-    public ChatController(ChatService chat, ChatProperties properties) { super(chat, properties); }
+    private final ChatService chat;
+    public ChatController(ChatService chat, ChatProperties properties) { super(chat, properties); this.chat = chat; }
+
+    @GetMapping("/contacts")
+    public com.lixiaopu.common.result.Result contacts() {
+        return com.lixiaopu.common.result.Result.success(chat.getServiceContacts());
+    }
 }
