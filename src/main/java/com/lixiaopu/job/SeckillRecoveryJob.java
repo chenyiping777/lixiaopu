@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.*;
 import org.springframework.stereotype.Component;
 
-@Component @Profile("user") @EnableScheduling @RequiredArgsConstructor @Slf4j
+@Component @Profile("user") @RequiredArgsConstructor @Slf4j
 public class SeckillRecoveryJob {
     private final SeckillOutbox outbox;
     private final VoucherOrderService orders;

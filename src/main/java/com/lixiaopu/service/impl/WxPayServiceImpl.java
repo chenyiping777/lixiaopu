@@ -30,8 +30,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +46,6 @@ import java.util.Objects;
  */
 @Service
 @RequiredArgsConstructor
-@EnableScheduling
 @Slf4j
 public class WxPayServiceImpl implements WxPayService {
 
@@ -334,7 +331,6 @@ public class WxPayServiceImpl implements WxPayService {
     }
 
     /** 包括审核提交后进程中断的订单；只扫描订单表中的“退款中”。 */
-    @Scheduled(fixedDelayString = "${wxpay.refund-scan-ms:60000}")
     public void scanRefunds() {
         if (!wxPayProperties.isEnabled() || !StringUtils.hasText(wxPayProperties.getRefundNotifyUrl())) return;
         for (Order order : orderMapper.selectList(new LambdaQueryWrapper<Order>()

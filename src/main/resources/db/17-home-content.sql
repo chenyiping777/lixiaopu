@@ -1,0 +1,27 @@
+-- 已有库补齐关于我们和首页轮播图表；新库 01-full-schema.sql 已包含。
+-- 不覆盖已有表和内容；执行前选中 lixiaopu 使用的业务数据库。
+CREATE TABLE IF NOT EXISTS banner (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(128) NOT NULL,
+  image_url VARCHAR(1024) NOT NULL,
+  link_url VARCHAR(1024) NULL,
+  link_type VARCHAR(32) NULL,
+  sort INT NOT NULL DEFAULT 0,
+  status TINYINT NOT NULL DEFAULT 1,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_banner_status_sort(status,sort)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 banner';
+
+CREATE TABLE IF NOT EXISTS factory_info (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  image VARCHAR(1024) NULL,
+  factory_name VARCHAR(128) NOT NULL,
+  introduction LONGTEXT NULL,
+  service_hotline VARCHAR(32) NULL,
+  official_wechat VARCHAR(128) NULL,
+  address VARCHAR(500) NULL,
+  copyright_info VARCHAR(255) NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='栗小铺 factory_info';

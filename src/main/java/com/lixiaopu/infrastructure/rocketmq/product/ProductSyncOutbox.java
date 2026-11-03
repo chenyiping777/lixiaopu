@@ -7,8 +7,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.springframework.beans.factory.ObjectProvider;
 import com.lixiaopu.mapper.ProductSyncEventMapper;
 import com.lixiaopu.pojo.entity.ProductSyncEvent;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -18,7 +16,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** 商品事务内记账；未完成事件重复投递，只有消费执行成功才能标记完成。 */
 @Service
-@EnableScheduling
 @RequiredArgsConstructor
 @Slf4j
 public class ProductSyncOutbox {
@@ -67,11 +64,7 @@ public class ProductSyncOutbox {
      * - 无 MQ：直接本地调用 consume，相当于 “就地分发执行”。
      * 所以方法名叫 dispatch，就是事件分发器。
      * */
-    //`@Scheduled` 是 Spring 框架启动之后,单独创建的定时任务线程池，和 Tomcat 的 HTTP 线程池互相隔离.
-    // 定时任务线程只有 1 个（或者少量几个）用来扫描数据库、做 dispatch 分发；但 dispatch 只负责 “发通知”，
-    // 真正干活的消费线程是另一套独立线程池，而且多服务实例部署会放大这个现象。
-    @Scheduled(fixedDelayString = "${product.sync.poll-ms:5000}")//上一次任务执行完成之后，再等待固定时长，才启动下一次
-    //定这个事件分发器的时，每5秒执行一次，每次都去数据库查询待处理事件 ID 列表，并进行处理。
+    // 周期触发由用户端 ProductSyncDispatchJob 负责；业务服务在两端均保留。
     public void dispatch() {
         //查询 `product_sync_outbox` 表，取出待投递事件 ID 列表。
         var ids = productSyncEventMapper.selectPendingIds();
