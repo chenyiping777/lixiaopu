@@ -175,6 +175,8 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product>
         if (request.getCategoryId() != null) {
             var category = categoryMapper.selectById(request.getCategoryId());
             if (category == null || category.getParentId() == 0 || category.getStatus() != 1) invalidProduct("请选择启用的二级分类");
+            var parent = categoryMapper.selectById(category.getParentId());
+            if (parent == null || parent.getParentId() != 0 || parent.getStatus() != 1) invalidProduct("二级分类必须属于启用的一级分类");
         }
     }
 

@@ -1,0 +1,72 @@
+# JSON is valid YAML. Copy to src/main/resources/application-dev.yml and fill local values.
+# Never commit the populated file.
+{
+  "dev": {
+    "admin": {
+      "port": 8082,
+      "worker-id": 2
+    },
+    "auth": {
+      "jwt-secret": "REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS"
+    },
+    "bootstrap": {
+      "password": "",
+      "phone": "",
+      "username": ""
+    },
+    "elasticsearch": {
+      "password": "",
+      "product-index": "product_index",
+      "uris": "http://localhost:9200",
+      "username": ""
+    },
+    "mysql": {
+      "password": "",
+      "url": "jdbc:mysql://localhost:3306/lixiaopu?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai",
+      "username": "YOUR_DATABASE_USER"
+    },
+    "oss": {
+      "access-key-id": "",
+      "access-key-secret": "",
+      "bucket-name": "",
+      "endpoint": ""
+    },
+    "redis": {
+      "database": 0,
+      "host": "localhost",
+      "password": "",
+      "port": 6379
+    },
+    "rocketmq": {
+      "name-server": "127.0.0.1:9876",
+      "producer-group": "lixiaopu-producer"
+    },
+    "sms": {
+      "api-key": "",
+      "endpoint": "",
+      "sign": "",
+      "template": ""
+    },
+    "snowflake": {
+      "data-center-id": 1
+    },
+    "user": {
+      "port": 8081,
+      "worker-id": 1
+    },
+    "wechat": {
+      "app-id": "",
+      "app-secret": ""
+    },
+    "wxpay": {
+      "api-v3-key": "",
+      "app-id": "",
+      "cert-serial-number": "",
+      "enabled": false,
+      "merchant-id": "",
+      "notify-url": "",
+      "private-key-path": "",
+      "refund-notify-url": ""
+    }
+  }
+}

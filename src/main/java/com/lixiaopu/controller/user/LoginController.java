@@ -76,7 +76,7 @@ public class LoginController {
         //`Map.of` 创建一个只有一个键值对的 Map, 超过 10 个键值对：用 Map.ofEntries
         // Map<String, Object> map = Map.ofEntries(
         //        Map.entry("ticket", "abc123"),
-        //        Map.entry("phone", "13800138000"),
+        //        Map.entry("phone", "PHONE_NUMBER"),
         //        Map.entry("name", "test"),
         //        Map.entry("uid", 10001L)
         //        // 可以继续加，没有10条限制

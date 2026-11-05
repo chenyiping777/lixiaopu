@@ -226,6 +226,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
         //5.校验父分类是否为当前分类的祖先分类
         }
         if (parentId != null) {
+            if (parentId == 0 && productMapper.selectCount(new LambdaQueryWrapper<Product>()
+                    .eq(Product::getCategoryId, categoryId)) > 0) {
+                return Result.error(400, "该分类下还有商品，不能改为一级分类");
+            }
             String parentError = validateParentCategory(parentId, categoryId);
             //6.校验是否有子分类
             if (parentError != null) {
@@ -441,5 +445,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category>
         RedisConnector.opsForHash().put(key, field, children);
         return children;
     }
+
+
 
 }

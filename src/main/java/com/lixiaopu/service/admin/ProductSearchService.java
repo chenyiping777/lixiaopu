@@ -33,10 +33,8 @@ public class ProductSearchService {
         List<Long> categoryIds = query.getCategoryId() == null ? null : List.of(query.getCategoryId());
         if (query.getCategoryId() != null && query.isFirstCategoryId()) {
             categoryIds = categoryMapper.selectList(Wrappers.<Category>lambdaQuery()
-                    .eq(Category::getParentId, query.getCategoryId())).stream().map(Category::getId).toList();
-            if (categoryIds.isEmpty()) {
-                return new SearchResult(List.of(), 0, 0, query.getPageNo(), query.getPageSize());
-            }
+                    .eq(Category::getParentId, query.getCategoryId())
+                    .eq(Category::getStatus, 1)).stream().map(Category::getId).toList();
         }
         ProductSearchOptions options = ProductSearchOptions.builder()
                 .keyword(query.getKeyword())
